@@ -102,7 +102,7 @@ Alle fire faser fra PRD er fullført.
 
 ### Navigasjon (etter innlogging)
 - **Hjem** — Oversikt over alle konsulenter med fakturert tid og utfyllingsgrad (fargekodert: rød/orange/grønn)
-- **Timeregistrering** — Registrer timer per Jira-sak i månedsrutenett med ukedager, helgmarkering (rød tekst) og sletteknapp per rad
+- **Timeregistrering** — Registrer timer per Jira-sak i månedsrutenett med ukedager, helgmarkering (rød tekst), sletteknapp per rad, og JSON eksport/import
 - **Rapport** — Faktureringsgrunnlag per fakturaprosjekt med Excel- og PDF-eksport
 - **Admin** — Administrer konsulenter og Jira-prosjekter med fordelingsnøkler
 
@@ -113,6 +113,8 @@ Alle fire faser fra PRD er fullført.
 - `GET/POST/PUT/DELETE /api/jira-projects` — Jira-prosjekter med fordelingsnøkler
 - `GET/PUT/DELETE /api/time-entries` — Timeregistreringer
 - `DELETE /api/time-entries/by-issue` — Slett alle timer for en Jira-sak
+- `GET /api/time-entries/export` — Eksporter timer som JSON-fil
+- `POST /api/time-entries/import` — Importer timer fra JSON (overskriver eksisterende)
 - `GET /api/monthly-summary` — Sammendrag for hjem-siden
 - `GET /api/reports/monthly` — Faktureringsdata per prosjekt
 - `GET /api/reports/monthly/excel` — Excel-eksport per fakturaprosjekt
