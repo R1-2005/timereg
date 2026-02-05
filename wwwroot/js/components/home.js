@@ -21,6 +21,7 @@ export default {
                     <thead>
                         <tr>
                             <th>Konsulent</th>
+                            <th class="text-right">Utfylt</th>
                             <th class="text-right">Timer totalt</th>
                             <th v-for="ip in invoiceProjects" :key="ip.id" class="text-right">
                                 {{ ip.projectNumber }}
@@ -30,6 +31,11 @@ export default {
                     <tbody>
                         <tr v-for="consultant in consultants" :key="consultant.id">
                             <td>{{ consultant.firstName }} {{ consultant.lastName }}</td>
+                            <td class="text-right">
+                                <span :class="getCompletionClass(consultant.completionPercent)">
+                                    {{ consultant.completionPercent }}%
+                                </span>
+                            </td>
                             <td class="text-right">{{ formatHours(consultant.totalHours) }}</td>
                             <td v-for="ip in invoiceProjects" :key="ip.id" class="text-right">
                                 {{ formatHours(getDistributedHours(consultant.id, ip.id)) }}
@@ -39,6 +45,7 @@ export default {
                     <tfoot>
                         <tr class="sum-row">
                             <td><strong>Sum</strong></td>
+                            <td></td>
                             <td class="text-right"><strong>{{ formatHours(totalHours) }}</strong></td>
                             <td v-for="ip in invoiceProjects" :key="ip.id" class="text-right">
                                 <strong>{{ formatHours(getInvoiceProjectTotal(ip.id)) }}</strong>
@@ -65,15 +72,32 @@ export default {
                 'Juli', 'August', 'September', 'Oktober', 'November', 'Desember'];
             return names[this.month];
         },
+        workDaysInMonth() {
+            const daysInMonth = new Date(this.year, this.month, 0).getDate();
+            let workDays = 0;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(this.year, this.month - 1, day);
+                const dow = date.getDay();
+                if (dow !== 0 && dow !== 6) {
+                    workDays++;
+                }
+            }
+            return workDays;
+        },
         consultants() {
             const map = new Map();
             for (const row of this.summaryData) {
                 if (!map.has(row.consultantId)) {
+                    const completionPercent = this.workDaysInMonth > 0
+                        ? Math.round((row.daysWithEntries / this.workDaysInMonth) * 100)
+                        : 0;
                     map.set(row.consultantId, {
                         id: row.consultantId,
                         firstName: row.firstName,
                         lastName: row.lastName,
                         totalHours: row.totalHours,
+                        daysWithEntries: row.daysWithEntries,
+                        completionPercent: completionPercent,
                         distributions: {}
                     });
                 }
@@ -136,6 +160,11 @@ export default {
             return this.consultants.reduce((sum, c) => {
                 return sum + (c.distributions[invoiceProjectId] || 0);
             }, 0);
+        },
+        getCompletionClass(percent) {
+            if (percent < 50) return 'completion-low';
+            if (percent < 80) return 'completion-medium';
+            return 'completion-high';
         }
     }
 };

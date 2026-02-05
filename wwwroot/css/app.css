@@ -682,3 +682,19 @@ tfoot .sum-row td {
     font-style: italic;
     padding: 16px 0;
 }
+
+/* Completion percentage colors */
+.completion-low {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.completion-medium {
+    color: #ea580c;
+    font-weight: 600;
+}
+
+.completion-high {
+    color: #16a34a;
+    font-weight: 600;
+}
