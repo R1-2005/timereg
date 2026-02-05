@@ -517,6 +517,17 @@ tfoot .sum-row td {
     background: #f1f5f9;
 }
 
+.time-grid .weekend-text {
+    color: #dc2626;
+}
+
+.time-grid .weekday-row th {
+    padding-top: 4px;
+    padding-bottom: 2px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
 .time-grid .sum-col {
     min-width: 64px;
     font-weight: 600;

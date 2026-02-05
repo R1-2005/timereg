@@ -10,6 +10,14 @@ export default {
             <div class="time-grid-wrapper">
                 <table class="time-grid">
                     <thead>
+                        <tr class="weekday-row">
+                            <th class="issue-col"></th>
+                            <th v-for="day in daysInMonth" :key="'wd-' + day" class="day-col" :class="{ weekend: isWeekend(day), 'weekend-text': isWeekend(day) }">
+                                {{ getWeekdayShort(day) }}
+                            </th>
+                            <th class="sum-col"></th>
+                            <th class="action-col"></th>
+                        </tr>
                         <tr>
                             <th class="issue-col">Jira-sak</th>
                             <th v-for="day in daysInMonth" :key="day" class="day-col" :class="{ weekend: isWeekend(day) }">
@@ -155,6 +163,12 @@ export default {
             const date = new Date(this.year, this.month - 1, day);
             const dow = date.getDay();
             return dow === 0 || dow === 6;
+        },
+
+        getWeekdayShort(day) {
+            const date = new Date(this.year, this.month - 1, day);
+            const weekdays = ['Sø', 'Ma', 'Ti', 'On', 'To', 'Fr', 'Lø'];
+            return weekdays[date.getDay()];
         },
 
         getEntry(issueKey, day) {
