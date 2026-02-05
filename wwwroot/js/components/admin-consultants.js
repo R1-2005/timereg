@@ -2,13 +2,14 @@ import api from '../services/api.js';
 
 export default {
     name: 'AdminConsultants',
+    emits: ['consultant-added'],
     template: `
         <div class="card">
             <h2>Konsulenter</h2>
 
             <div v-if="error" class="error">{{ error }}</div>
 
-            <form @submit.prevent="saveConsultant" class="card" style="background: #f8f9fa;">
+            <form @submit.prevent="saveConsultant" class="card" style="background: var(--color-bg);">
                 <h3>{{ editing ? 'Rediger konsulent' : 'Legg til konsulent' }}</h3>
                 <div class="form-row">
                     <div class="form-group">
@@ -86,6 +87,7 @@ export default {
                     await api.updateConsultant(this.editing.id, this.form);
                 } else {
                     await api.createConsultant(this.form);
+                    this.$emit('consultant-added');
                 }
                 this.form = { firstName: '', lastName: '', email: '' };
                 this.editing = null;

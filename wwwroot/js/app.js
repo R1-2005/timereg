@@ -1,17 +1,44 @@
+import api from './services/api.js';
 import Login from './components/login.js';
 import AdminConsultants from './components/admin-consultants.js';
 import AdminProjects from './components/admin-projects.js';
+import MonthPicker from './components/month-picker.js';
+import TimeGrid from './components/time-grid.js';
 
-const { createApp, ref, computed, onMounted } = Vue;
+const { createApp, ref, onMounted } = Vue;
 
 const App = {
     components: {
         Login,
         AdminConsultants,
-        AdminProjects
+        AdminProjects,
+        MonthPicker,
+        TimeGrid
     },
     template: `
-        <div v-if="!consultant">
+        <div v-if="loading" class="loading-container">
+            <div class="loading">Laster...</div>
+        </div>
+
+        <div v-else-if="noConsultants">
+            <nav class="nav">
+                <ul class="nav-tabs">
+                    <li>
+                        <a href="#" class="active">Admin</a>
+                    </li>
+                </ul>
+            </nav>
+            <div class="container">
+                <div class="card" style="background: #fffbeb; border-color: #fde68a;">
+                    <p style="margin: 0; color: #92400e;">
+                        <strong>Velkommen!</strong> Ingen konsulenter er registrert ennå. Legg til minst én konsulent for å komme i gang.
+                    </p>
+                </div>
+                <AdminConsultants @consultant-added="checkConsultants" />
+            </div>
+        </div>
+
+        <div v-else-if="!consultant">
             <Login @login="onLogin" />
         </div>
 
@@ -42,10 +69,17 @@ const App = {
 
             <div class="container">
                 <div v-if="tab === 'timeregistrering'">
-                    <div class="card">
-                        <h2>Timeregistrering</h2>
-                        <p style="color: #666;">Kommer i Fase 3</p>
-                    </div>
+                    <MonthPicker
+                        :year="selectedYear"
+                        :month="selectedMonth"
+                        @update:year="selectedYear = $event"
+                        @update:month="selectedMonth = $event"
+                    />
+                    <TimeGrid
+                        :consultant-id="consultant.id"
+                        :year="selectedYear"
+                        :month="selectedMonth"
+                    />
                 </div>
 
                 <div v-if="tab === 'rapport'">
@@ -63,14 +97,35 @@ const App = {
         </div>
     `,
     setup() {
+        const loading = ref(true);
+        const noConsultants = ref(false);
         const consultant = ref(null);
         const tab = ref('timeregistrering');
 
-        onMounted(() => {
-            const saved = localStorage.getItem('consultant');
-            if (saved) {
-                consultant.value = JSON.parse(saved);
+        const now = new Date();
+        const selectedYear = ref(now.getFullYear());
+        const selectedMonth = ref(now.getMonth() + 1);
+
+        const checkConsultants = async () => {
+            try {
+                const consultants = await api.getConsultants();
+                noConsultants.value = consultants.length === 0;
+            } catch (e) {
+                console.error('Could not check consultants:', e);
             }
+        };
+
+        onMounted(async () => {
+            await checkConsultants();
+
+            if (!noConsultants.value) {
+                const saved = localStorage.getItem('consultant');
+                if (saved) {
+                    consultant.value = JSON.parse(saved);
+                }
+            }
+
+            loading.value = false;
         });
 
         const onLogin = (c) => {
@@ -83,8 +138,13 @@ const App = {
         };
 
         return {
+            loading,
+            noConsultants,
             consultant,
             tab,
+            selectedYear,
+            selectedMonth,
+            checkConsultants,
             onLogin,
             logout
         };
