@@ -440,6 +440,16 @@ tfoot .sum-row td {
     position: relative;
 }
 
+.time-grid-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.import-btn {
+    cursor: pointer;
+}
+
 .saving-indicator {
     position: absolute;
     top: -8px;

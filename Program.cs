@@ -158,6 +158,74 @@ timeEntries.MapDelete("/by-issue", async (int consultantId, string jiraIssueKey,
     return Results.Ok(new { deleted = rowsDeleted });
 });
 
+timeEntries.MapGet("/export", async (int consultantId, int year, int month, TimeEntryRepository repo) =>
+{
+    var entries = await repo.GetByConsultantAndMonthAsync(consultantId, year, month);
+    var exportData = new
+    {
+        consultantId,
+        year,
+        month,
+        exportedAt = DateTime.UtcNow,
+        entries = entries.Select(e => new
+        {
+            jiraIssueKey = e.JiraIssueKey,
+            date = e.Date.ToString("yyyy-MM-dd"),
+            hours = e.Hours
+        })
+    };
+
+    var json = System.Text.Json.JsonSerializer.Serialize(exportData, new System.Text.Json.JsonSerializerOptions
+    {
+        WriteIndented = true
+    });
+
+    var fileName = $"Timer_{year}-{month:D2}.json";
+    return Results.File(System.Text.Encoding.UTF8.GetBytes(json), "application/json", fileName);
+});
+
+timeEntries.MapPost("/import", async (TimeEntryImportDto importData, TimeEntryRepository timeRepo, JiraProjectRepository jiraRepo) =>
+{
+    // Delete existing entries for this consultant/month
+    await timeRepo.DeleteByConsultantAndMonthAsync(importData.ConsultantId, importData.Year, importData.Month);
+
+    var imported = 0;
+    var errors = new List<string>();
+
+    foreach (var entry in importData.Entries)
+    {
+        var dashIndex = entry.JiraIssueKey.LastIndexOf('-');
+        if (dashIndex <= 0)
+        {
+            errors.Add($"Ugyldig format: {entry.JiraIssueKey}");
+            continue;
+        }
+
+        var projectKey = entry.JiraIssueKey[..dashIndex];
+        var jiraProject = await jiraRepo.GetByKeyAsync(projectKey);
+
+        if (jiraProject is null)
+        {
+            errors.Add($"Ukjent prosjekt: {projectKey}");
+            continue;
+        }
+
+        var timeEntry = new TimeEntry
+        {
+            ConsultantId = importData.ConsultantId,
+            JiraIssueKey = entry.JiraIssueKey,
+            JiraProjectId = jiraProject.Id,
+            Date = entry.Date,
+            Hours = entry.Hours
+        };
+
+        await timeRepo.UpsertAsync(timeEntry);
+        imported++;
+    }
+
+    return Results.Ok(new { imported, errors });
+});
+
 // Monthly summary
 api.MapGet("/monthly-summary", async (int year, int month, TimeEntryRepository repo) =>
     Results.Ok(await repo.GetMonthlySummaryAsync(year, month)));

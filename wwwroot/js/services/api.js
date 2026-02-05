@@ -62,6 +62,9 @@ const api = {
     deleteTimeEntry: (id) => api.delete(`/api/time-entries/${id}`),
     deleteTimeEntriesByIssue: (consultantId, jiraIssueKey, year, month) =>
         api.delete(`/api/time-entries/by-issue?consultantId=${consultantId}&jiraIssueKey=${encodeURIComponent(jiraIssueKey)}&year=${year}&month=${month}`),
+    exportTimeEntriesUrl: (consultantId, year, month) =>
+        `/api/time-entries/export?consultantId=${consultantId}&year=${year}&month=${month}`,
+    importTimeEntries: (data) => api.post('/api/time-entries/import', data),
 
     // Monthly summary
     getMonthlySummary: (year, month) => api.get(`/api/monthly-summary?year=${year}&month=${month}`),

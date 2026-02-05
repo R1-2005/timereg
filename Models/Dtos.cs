@@ -34,3 +34,18 @@ public class TimeEntryUpsertDto
     public DateOnly Date { get; set; }
     public decimal Hours { get; set; }
 }
+
+public class TimeEntryImportDto
+{
+    public int ConsultantId { get; set; }
+    public int Year { get; set; }
+    public int Month { get; set; }
+    public required List<TimeEntryImportItem> Entries { get; set; }
+}
+
+public class TimeEntryImportItem
+{
+    public required string JiraIssueKey { get; set; }
+    public DateOnly Date { get; set; }
+    public decimal Hours { get; set; }
+}

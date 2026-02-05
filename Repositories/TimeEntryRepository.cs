@@ -125,6 +125,22 @@ public class TimeEntryRepository
         return rowsAffected;
     }
 
+    public async Task<int> DeleteByConsultantAndMonthAsync(int consultantId, int year, int month)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        var startDate = new DateOnly(year, month, 1).ToString("yyyy-MM-dd");
+        var endDate = new DateOnly(year, month, DateTime.DaysInMonth(year, month)).ToString("yyyy-MM-dd");
+
+        var rowsAffected = await connection.ExecuteAsync(
+            """
+            DELETE FROM TimeEntries
+            WHERE ConsultantId = @ConsultantId
+              AND Date >= @StartDate
+              AND Date <= @EndDate
+            """, new { ConsultantId = consultantId, StartDate = startDate, EndDate = endDate });
+        return rowsAffected;
+    }
+
     public async Task<IEnumerable<MonthSummaryRow>> GetMonthlySummaryAsync(int year, int month)
     {
         using var connection = _connectionFactory.CreateConnection();
