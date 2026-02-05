@@ -61,12 +61,12 @@ INSERT INTO JiraProjects (Key, Name) VALUES ('OUVASK', 'OU vask, løpende endrin
 INSERT INTO DistributionKeys (JiraProjectId, InvoiceProjectId, Percentage)
 SELECT jp.Id, 1, 100 FROM JiraProjects jp WHERE jp.Key IN ('AFPSAK', 'AT24', 'NYAFPFAKT', 'OAFPT', 'DOFA');
 
--- 70/15/15: 70% -> 10108, 15% -> 10607, 15% -> 11003
+-- 70/15/15: 70% -> 10108 (AFP), 15% -> 10608 (SO Felles), 15% -> 11003 (OUS)
 INSERT INTO DistributionKeys (JiraProjectId, InvoiceProjectId, Percentage)
 SELECT jp.Id, 1, 70 FROM JiraProjects jp WHERE jp.Key IN ('ANONY', 'BEPO', 'CD', 'DIVN', 'DOK', 'DRIFT', 'EFS', 'GDPRN', 'JCDF', 'JOCM', 'KF', 'MFF', 'MP', 'NA', 'NJLE', 'NOK', 'NTILSLUT21', 'NYTILSLUT', 'NYAAREG', 'SLETST', 'SLPRNY', 'ST', 'AAREGSKDNY', 'P20', 'IO2T2');
 
 INSERT INTO DistributionKeys (JiraProjectId, InvoiceProjectId, Percentage)
-SELECT jp.Id, 2, 15 FROM JiraProjects jp WHERE jp.Key IN ('ANONY', 'BEPO', 'CD', 'DIVN', 'DOK', 'DRIFT', 'EFS', 'GDPRN', 'JCDF', 'JOCM', 'KF', 'MFF', 'MP', 'NA', 'NJLE', 'NOK', 'NTILSLUT21', 'NYTILSLUT', 'NYAAREG', 'SLETST', 'SLPRNY', 'ST', 'AAREGSKDNY', 'P20', 'IO2T2');
+SELECT jp.Id, 3, 15 FROM JiraProjects jp WHERE jp.Key IN ('ANONY', 'BEPO', 'CD', 'DIVN', 'DOK', 'DRIFT', 'EFS', 'GDPRN', 'JCDF', 'JOCM', 'KF', 'MFF', 'MP', 'NA', 'NJLE', 'NOK', 'NTILSLUT21', 'NYTILSLUT', 'NYAAREG', 'SLETST', 'SLPRNY', 'ST', 'AAREGSKDNY', 'P20', 'IO2T2');
 
 INSERT INTO DistributionKeys (JiraProjectId, InvoiceProjectId, Percentage)
 SELECT jp.Id, 4, 15 FROM JiraProjects jp WHERE jp.Key IN ('ANONY', 'BEPO', 'CD', 'DIVN', 'DOK', 'DRIFT', 'EFS', 'GDPRN', 'JCDF', 'JOCM', 'KF', 'MFF', 'MP', 'NA', 'NJLE', 'NOK', 'NTILSLUT21', 'NYTILSLUT', 'NYAAREG', 'SLETST', 'SLPRNY', 'ST', 'AAREGSKDNY', 'P20', 'IO2T2');
