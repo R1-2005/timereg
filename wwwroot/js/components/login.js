@@ -17,7 +17,7 @@ export default {
 
                     <div class="form-group">
                         <label>E-post</label>
-                        <input v-model="email" type="email" required>
+                        <input v-model="email" type="email" required placeholder="navn@proventus.no">
                     </div>
 
                     <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
@@ -46,6 +46,13 @@ export default {
     methods: {
         async login() {
             this.error = null;
+
+            // Validate proventus.no email
+            if (!this.email.toLowerCase().endsWith('@proventus.no')) {
+                this.error = 'Kun @proventus.no e-postadresser er tillatt.';
+                return;
+            }
+
             try {
                 const consultant = await api.login(this.firstName, this.email);
                 localStorage.setItem('consultant', JSON.stringify(consultant));

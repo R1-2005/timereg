@@ -22,7 +22,7 @@ export default {
                     </div>
                     <div class="form-group">
                         <label>E-post</label>
-                        <input v-model="form.email" type="email" required>
+                        <input v-model="form.email" type="email" required placeholder="navn@proventus.no">
                     </div>
                 </div>
                 <div>
@@ -82,6 +82,13 @@ export default {
         },
         async saveConsultant() {
             this.error = null;
+
+            // Validate proventus.no email
+            if (!this.form.email.toLowerCase().endsWith('@proventus.no')) {
+                this.error = 'Kun @proventus.no e-postadresser er tillatt.';
+                return;
+            }
+
             try {
                 if (this.editing) {
                     await api.updateConsultant(this.editing.id, this.form);

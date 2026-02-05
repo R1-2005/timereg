@@ -37,6 +37,10 @@ var api = app.MapGroup("/api");
 // Login
 api.MapPost("/login", async (LoginRequest request, ConsultantRepository repo) =>
 {
+    // Validate proventus.no email domain
+    if (!request.Email.EndsWith("@proventus.no", StringComparison.OrdinalIgnoreCase))
+        return Results.BadRequest(new { error = "Kun @proventus.no e-postadresser er tillatt." });
+
     var consultant = await repo.GetByFirstNameAndEmailAsync(request.FirstName, request.Email);
     return consultant is not null ? Results.Ok(consultant) : Results.Unauthorized();
 });
@@ -55,12 +59,18 @@ consultants.MapGet("/{id:int}", async (int id, ConsultantRepository repo) =>
 
 consultants.MapPost("/", async (Consultant consultant, ConsultantRepository repo) =>
 {
+    if (!consultant.Email.EndsWith("@proventus.no", StringComparison.OrdinalIgnoreCase))
+        return Results.BadRequest(new { error = "Kun @proventus.no e-postadresser er tillatt." });
+
     var created = await repo.CreateAsync(consultant);
     return Results.Created($"/api/consultants/{created.Id}", created);
 });
 
 consultants.MapPut("/{id:int}", async (int id, Consultant consultant, ConsultantRepository repo) =>
 {
+    if (!consultant.Email.EndsWith("@proventus.no", StringComparison.OrdinalIgnoreCase))
+        return Results.BadRequest(new { error = "Kun @proventus.no e-postadresser er tillatt." });
+
     consultant.Id = id;
     var updated = await repo.UpdateAsync(consultant);
     return updated is not null ? Results.Ok(updated) : Results.NotFound();
