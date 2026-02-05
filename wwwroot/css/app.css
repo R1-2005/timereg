@@ -533,7 +533,7 @@ tfoot .sum-row td {
     font-weight: 600;
     background: var(--color-bg);
     position: sticky;
-    right: 0;
+    right: 36px;
     z-index: 5;
     border-left: 2px solid var(--color-border);
 }
@@ -630,6 +630,26 @@ tfoot .sum-row td {
     width: 36px;
     min-width: 36px;
     padding: 4px;
+    background: var(--color-bg);
+    position: sticky;
+    right: 0;
+    z-index: 5;
+}
+
+.time-grid th.action-col {
+    z-index: 15;
+}
+
+.time-grid tbody .action-col {
+    background: var(--color-surface);
+}
+
+.time-grid .sum-row .action-col {
+    background: #f0f9ff;
+}
+
+.time-grid .distribution-row .action-col {
+    background: #fefce8;
 }
 
 .btn-delete {
