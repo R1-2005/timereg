@@ -60,7 +60,8 @@ Ingen ekstern database. SQLite-filen lever i prosjektmappen. Skjemaendringer hå
 │   └── TimeEntryRepository.cs
 ├── Scripts/
 │   ├── 001_initial_schema.sql
-│   └── 002_seed_data.sql
+│   ├── 002_seed_data.sql
+│   └── 003_fix_distribution_keys.sql
 ├── wwwroot/
 │   ├── index.html
 │   ├── css/
@@ -102,7 +103,7 @@ Alle fire faser fra PRD er fullført.
 
 ### Navigasjon (etter innlogging)
 - **Hjem** — Oversikt over alle konsulenter med fakturert tid og utfyllingsgrad (fargekodert: rød/orange/grønn)
-- **Timeregistrering** — Registrer timer per Jira-sak i månedsrutenett med ukedager, helgmarkering (rød tekst), sletteknapp per rad, og JSON eksport/import
+- **Timeregistrering** — Registrer timer per Jira-sak i månedsrutenett med ukedager, helgmarkering (rød tekst), sletteknapp per rad, JSON eksport/import, og valgfri visning (hh:mm eller desimaltall)
 - **Rapport** — Faktureringsgrunnlag per fakturaprosjekt med Excel- og PDF-eksport
 - **Admin** — Administrer konsulenter og Jira-prosjekter med fordelingsnøkler
 
