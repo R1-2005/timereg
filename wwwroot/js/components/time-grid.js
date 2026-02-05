@@ -7,16 +7,6 @@ export default {
             <div v-if="error" class="error">{{ error }}</div>
             <div v-if="saving" class="saving-indicator">Lagrer...</div>
 
-            <div class="time-grid-actions">
-                <button class="btn btn-secondary" @click="exportJson">
-                    Eksporter JSON
-                </button>
-                <label class="btn btn-secondary import-btn">
-                    Importer JSON
-                    <input type="file" accept=".json" @change="importJson" hidden>
-                </label>
-            </div>
-
             <div class="time-grid-wrapper">
                 <table class="time-grid">
                     <thead>
@@ -396,53 +386,6 @@ export default {
                 this.error = 'Kunne ikke slette: ' + e.message;
             } finally {
                 this.saving = false;
-            }
-        },
-
-        exportJson() {
-            const url = api.exportTimeEntriesUrl(this.consultantId, this.year, this.month);
-            window.location.href = url;
-        },
-
-        async importJson(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const confirmed = confirm('Dette vil overskrive alle eksisterende timer for denne måneden. Fortsette?');
-            if (!confirmed) {
-                event.target.value = '';
-                return;
-            }
-
-            try {
-                const text = await file.text();
-                const data = JSON.parse(text);
-
-                const importData = {
-                    consultantId: this.consultantId,
-                    year: this.year,
-                    month: this.month,
-                    entries: data.entries.map(e => ({
-                        jiraIssueKey: e.jiraIssueKey,
-                        date: e.date,
-                        hours: e.hours
-                    }))
-                };
-
-                this.saving = true;
-                this.error = null;
-                const result = await api.importTimeEntries(importData);
-
-                if (result.errors && result.errors.length > 0) {
-                    this.error = `Importert ${result.imported} timer. Feil: ${result.errors.join(', ')}`;
-                }
-
-                await this.load();
-            } catch (e) {
-                this.error = 'Kunne ikke importere: ' + e.message;
-            } finally {
-                this.saving = false;
-                event.target.value = '';
             }
         }
     }

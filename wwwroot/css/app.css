@@ -436,18 +436,24 @@ tfoot .sum-row td {
 }
 
 /* Time grid */
-.time-grid-container {
-    position: relative;
+.time-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
 }
 
-.time-grid-actions {
+.time-header-actions {
     display: flex;
     gap: 8px;
-    margin-bottom: 12px;
 }
 
 .import-btn {
     cursor: pointer;
+}
+
+.time-grid-container {
+    position: relative;
 }
 
 .saving-indicator {
@@ -479,7 +485,7 @@ tfoot .sum-row td {
 
 .time-grid th,
 .time-grid td {
-    padding: 8px 4px;
+    padding: 4px 3px;
     text-align: center;
     border: none;
     border-bottom: 1px solid var(--color-border-light);
@@ -570,7 +576,7 @@ tfoot .sum-row td {
     background: #fefce8;
     font-size: 11px;
     color: var(--color-text-muted);
-    padding: 6px 4px;
+    padding: 3px 3px;
 }
 
 .time-grid .distribution-row .issue-col {
@@ -612,7 +618,7 @@ tfoot .sum-row td {
     border: none;
     background: transparent;
     text-align: center;
-    padding: 6px 2px;
+    padding: 2px 2px;
     border-radius: var(--radius-sm);
     font-size: 13px;
     color: var(--color-text);

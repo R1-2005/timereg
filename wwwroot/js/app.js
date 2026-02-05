@@ -82,13 +82,25 @@ const App = {
                 </div>
 
                 <div v-if="tab === 'timeregistrering'">
-                    <MonthPicker
-                        :year="selectedYear"
-                        :month="selectedMonth"
-                        @update:year="selectedYear = $event"
-                        @update:month="selectedMonth = $event"
-                    />
+                    <div class="time-header">
+                        <MonthPicker
+                            :year="selectedYear"
+                            :month="selectedMonth"
+                            @update:year="selectedYear = $event"
+                            @update:month="selectedMonth = $event"
+                        />
+                        <div class="time-header-actions">
+                            <button class="btn btn-secondary" @click="exportJson">
+                                Eksporter JSON
+                            </button>
+                            <label class="btn btn-secondary import-btn">
+                                Importer JSON
+                                <input type="file" accept=".json" @change="importJson" hidden>
+                            </label>
+                        </div>
+                    </div>
                     <TimeGrid
+                        ref="timeGrid"
                         :consultant-id="consultant.id"
                         :year="selectedYear"
                         :month="selectedMonth"
@@ -147,6 +159,56 @@ const App = {
             consultant.value = null;
         };
 
+        const timeGrid = ref(null);
+
+        const exportJson = () => {
+            const url = `/api/time-entries/export?consultantId=${consultant.value.id}&year=${selectedYear.value}&month=${selectedMonth.value}`;
+            window.location.href = url;
+        };
+
+        const importJson = async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const confirmed = confirm('Dette vil overskrive alle eksisterende timer for denne måneden. Fortsette?');
+            if (!confirmed) {
+                event.target.value = '';
+                return;
+            }
+
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+
+                const importData = {
+                    consultantId: consultant.value.id,
+                    year: selectedYear.value,
+                    month: selectedMonth.value,
+                    entries: data.entries.map(e => ({
+                        jiraIssueKey: e.jiraIssueKey,
+                        date: e.date,
+                        hours: e.hours
+                    }))
+                };
+
+                const result = await api.importTimeEntries(importData);
+
+                if (result.errors && result.errors.length > 0) {
+                    alert(`Importert ${result.imported} timer. Feil: ${result.errors.join(', ')}`);
+                } else {
+                    alert(`Importert ${result.imported} timer.`);
+                }
+
+                if (timeGrid.value) {
+                    timeGrid.value.load();
+                }
+            } catch (e) {
+                alert('Kunne ikke importere: ' + e.message);
+            } finally {
+                event.target.value = '';
+            }
+        };
+
         return {
             loading,
             noConsultants,
@@ -156,7 +218,10 @@ const App = {
             selectedMonth,
             checkConsultants,
             onLogin,
-            logout
+            logout,
+            timeGrid,
+            exportJson,
+            importJson
         };
     }
 };
