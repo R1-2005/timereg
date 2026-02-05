@@ -27,6 +27,10 @@ Ingen ekstern database. SQLite-filen lever i prosjektmappen. Skjemaendringer hå
 
 ## Utviklingsregler
 
+### Git
+- Ikke kjør `git commit` eller `git push` automatisk
+- Vent til brukeren eksplisitt ber om det
+
 ### Kodekonvensjoner
 - C#-kode følger standard .NET-konvensjoner
 - JavaScript bruker moderne ES6+ syntaks
@@ -127,5 +131,5 @@ Alle fire faser fra PRD er fullført.
 - Systemet brukes av ~5 konsulenter
 - Fakturering skjer månedlig — alt dreier seg om månedsperioder
 - Fordelingsnøklene er kjernelogikken: timer på en Jira-sak fordeles prosentvis på fakturaprosjekter basert på Jira-prosjektets nøkkel
-- Ingen autentisering utover å velge sin konsulent ved innlogging (fornavn + e-post)
+- Enkel autentisering: fornavn + e-post, kun @proventus.no-adresser tillatt
 - Ingen rettighets- eller rollestyring

@@ -17,7 +17,7 @@ export default {
 
                     <div class="form-group">
                         <label>E-post</label>
-                        <input v-model="email" type="email" required placeholder="navn@proventus.no">
+                        <input v-model="email" type="email" required>
                     </div>
 
                     <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
