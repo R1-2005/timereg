@@ -138,7 +138,7 @@ public class TimeEntryRepository
                     c.Id AS ConsultantId,
                     c.FirstName,
                     c.LastName,
-                    COALESCE(SUM(te.Hours), 0) AS TotalHours
+                    COALESCE(SUM(te.Hours), 0.0) AS TotalHours
                 FROM Consultants c
                 LEFT JOIN TimeEntries te ON te.ConsultantId = c.Id
                     AND te.Date >= @StartDate
@@ -149,7 +149,7 @@ public class TimeEntryRepository
                 SELECT
                     te.ConsultantId,
                     dk.InvoiceProjectId,
-                    COALESCE(SUM(te.Hours * dk.Percentage / 100.0), 0) AS DistributedHours
+                    COALESCE(SUM(te.Hours * dk.Percentage / 100.0), 0.0) AS DistributedHours
                 FROM TimeEntries te
                 INNER JOIN DistributionKeys dk ON dk.JiraProjectId = te.JiraProjectId
                 WHERE te.Date >= @StartDate AND te.Date <= @EndDate
@@ -159,11 +159,11 @@ public class TimeEntryRepository
                 ct.ConsultantId,
                 ct.FirstName,
                 ct.LastName,
-                ct.TotalHours,
+                CAST(ct.TotalHours AS REAL) AS TotalHours,
                 ip.Id AS InvoiceProjectId,
                 ip.ProjectNumber,
                 ip.Name AS InvoiceProjectName,
-                COALESCE(dt.DistributedHours, 0) AS DistributedHours
+                CAST(COALESCE(dt.DistributedHours, 0.0) AS REAL) AS DistributedHours
             FROM ConsultantTotals ct
             CROSS JOIN InvoiceProjects ip
             LEFT JOIN DistributedTotals dt ON dt.ConsultantId = ct.ConsultantId
