@@ -90,6 +90,10 @@ const App = {
                             @update:month="selectedMonth = $event"
                         />
                         <div class="time-header-actions">
+                            <select v-model="displayMode" class="display-mode-select">
+                                <option value="hhmm">Timer som hh:mm</option>
+                                <option value="decimal">Timer som desimaltall</option>
+                            </select>
                             <button class="btn btn-secondary" @click="exportJson">
                                 Eksporter JSON
                             </button>
@@ -104,6 +108,7 @@ const App = {
                         :consultant-id="consultant.id"
                         :year="selectedYear"
                         :month="selectedMonth"
+                        :display-mode="displayMode"
                     />
                 </div>
 
@@ -127,6 +132,7 @@ const App = {
         const now = new Date();
         const selectedYear = ref(now.getFullYear());
         const selectedMonth = ref(now.getMonth() + 1);
+        const displayMode = ref('decimal');
 
         const checkConsultants = async () => {
             try {
@@ -216,6 +222,7 @@ const App = {
             tab,
             selectedYear,
             selectedMonth,
+            displayMode,
             checkConsultants,
             onLogin,
             logout,

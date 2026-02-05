@@ -102,6 +102,10 @@ export default {
         month: {
             type: Number,
             required: true
+        },
+        displayMode: {
+            type: String,
+            default: 'decimal'
         }
     },
     data() {
@@ -183,11 +187,21 @@ export default {
 
         formatHours(hours) {
             if (!hours || hours === 0) return '';
+            if (this.displayMode === 'hhmm') {
+                const h = Math.floor(hours);
+                const m = Math.round((hours - h) * 60);
+                return `${h}:${m.toString().padStart(2, '0')}`;
+            }
             return hours.toFixed(1).replace('.', ',');
         },
 
         formatDistribution(hours) {
             if (!hours || hours === 0) return '';
+            if (this.displayMode === 'hhmm') {
+                const h = Math.floor(hours);
+                const m = Math.round((hours - h) * 60);
+                return `${h}:${m.toString().padStart(2, '0')}`;
+            }
             return hours.toFixed(2).replace('.', ',');
         },
 
