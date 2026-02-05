@@ -10,6 +10,7 @@ Internt timeregistreringssystem for konsulenter. Timer registreres per Jira-sak 
 - **Frontend:** Vue 3 via CDN (ingen byggsteg, ingen npm/node)
 - **Database:** SQLite via Dapper
 - **Excel-eksport:** ClosedXML
+- **PDF-eksport:** QuestPDF
 - **Produksjon:** Kjører i IIS på Windows Server
 - **Utvikling:** Crostini Linux (Chromebook) og Windows
 
@@ -113,6 +114,7 @@ Ved første kjøring skal databasen seedes med:
 - `GET /api/monthly-summary` — Sammendrag for hjem-siden
 - `GET /api/reports/monthly` — Faktureringsdata per prosjekt
 - `GET /api/reports/monthly/excel` — Excel-eksport per fakturaprosjekt
+- `GET /api/reports/monthly/pdf` — PDF-eksport per fakturaprosjekt
 
 ## Viktig kontekst
 

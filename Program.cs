@@ -1,7 +1,12 @@
 using ClosedXML.Excel;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using timereg.Data;
 using timereg.Models;
 using timereg.Repositories;
+
+QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -249,6 +254,109 @@ reports.MapGet("/monthly/excel", async (int year, int month, int invoiceProjectI
 
     var fileName = $"Fakturering_{invoiceProject.ProjectNumber}_{year}-{month:D2}.xlsx";
     return Results.File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+});
+
+reports.MapGet("/monthly/pdf", async (int year, int month, int invoiceProjectId, ReportRepository repo, InvoiceProjectRepository ipRepo) =>
+{
+    var data = await repo.GetMonthlyReportAsync(year, month);
+    var projectData = data.Where(r => r.InvoiceProjectId == invoiceProjectId).ToList();
+
+    var invoiceProject = (await ipRepo.GetAllAsync()).FirstOrDefault(ip => ip.Id == invoiceProjectId);
+    if (invoiceProject == null)
+        return Results.NotFound();
+
+    var monthNames = new[] { "", "Januar", "Februar", "Mars", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Desember" };
+
+    var document = Document.Create(container =>
+    {
+        container.Page(page =>
+        {
+            page.Size(PageSizes.A4);
+            page.Margin(40);
+            page.DefaultTextStyle(x => x.FontSize(10));
+
+            page.Header().Column(col =>
+            {
+                col.Item().Text($"{invoiceProject.ProjectNumber} {invoiceProject.Name}")
+                    .FontSize(16).Bold();
+                col.Item().Text($"{monthNames[month]} {year}")
+                    .FontSize(12);
+                col.Item().PaddingBottom(20);
+            });
+
+            page.Content().Table(table =>
+            {
+                table.ColumnsDefinition(columns =>
+                {
+                    columns.RelativeColumn(3);
+                    columns.RelativeColumn(2);
+                    columns.RelativeColumn(1);
+                });
+
+                // Header
+                table.Header(header =>
+                {
+                    header.Cell().BorderBottom(1).Padding(5).Text("Konsulent").Bold();
+                    header.Cell().BorderBottom(1).Padding(5).Text("Jira-sak").Bold();
+                    header.Cell().BorderBottom(1).Padding(5).AlignRight().Text("Timer").Bold();
+                });
+
+                var currentConsultant = "";
+                var consultantTotal = 0.0;
+                var grandTotal = 0.0;
+
+                foreach (var entry in projectData)
+                {
+                    var consultantName = $"{entry.FirstName} {entry.LastName}";
+
+                    if (currentConsultant != "" && currentConsultant != consultantName)
+                    {
+                        // Sum row for previous consultant
+                        table.Cell().Padding(5).Text($"Sum {currentConsultant}").Italic();
+                        table.Cell().Padding(5).Text("");
+                        table.Cell().Padding(5).AlignRight().Text(consultantTotal.ToString("0.00")).Italic();
+
+                        // Empty row
+                        table.Cell().Padding(5).Text("");
+                        table.Cell().Padding(5).Text("");
+                        table.Cell().Padding(5).Text("");
+
+                        consultantTotal = 0;
+                    }
+
+                    currentConsultant = consultantName;
+                    table.Cell().Padding(5).Text(consultantName);
+                    table.Cell().Padding(5).Text(entry.JiraIssueKey);
+                    table.Cell().Padding(5).AlignRight().Text(entry.Hours.ToString("0.00"));
+
+                    consultantTotal += entry.Hours;
+                    grandTotal += entry.Hours;
+                }
+
+                // Last consultant sum
+                if (currentConsultant != "")
+                {
+                    table.Cell().Padding(5).Text($"Sum {currentConsultant}").Italic();
+                    table.Cell().Padding(5).Text("");
+                    table.Cell().Padding(5).AlignRight().Text(consultantTotal.ToString("0.00")).Italic();
+                }
+
+                // Empty row before grand total
+                table.Cell().Padding(5).Text("");
+                table.Cell().Padding(5).Text("");
+                table.Cell().Padding(5).Text("");
+
+                // Grand total
+                table.Cell().BorderTop(1).Padding(5).Text("TOTALT").Bold();
+                table.Cell().BorderTop(1).Padding(5).Text("");
+                table.Cell().BorderTop(1).Padding(5).AlignRight().Text(grandTotal.ToString("0.00")).Bold();
+            });
+        });
+    });
+
+    var pdfBytes = document.GeneratePdf();
+    var fileName = $"Fakturering_{invoiceProject.ProjectNumber}_{year}-{month:D2}.pdf";
+    return Results.File(pdfBytes, "application/pdf", fileName);
 });
 
 app.Run();

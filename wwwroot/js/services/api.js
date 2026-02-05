@@ -69,7 +69,9 @@ const api = {
     // Reports
     getMonthlyReport: (year, month) => api.get(`/api/reports/monthly?year=${year}&month=${month}`),
     getMonthlyReportExcelUrl: (year, month, invoiceProjectId) =>
-        `/api/reports/monthly/excel?year=${year}&month=${month}&invoiceProjectId=${invoiceProjectId}`
+        `/api/reports/monthly/excel?year=${year}&month=${month}&invoiceProjectId=${invoiceProjectId}`,
+    getMonthlyReportPdfUrl: (year, month, invoiceProjectId) =>
+        `/api/reports/monthly/pdf?year=${year}&month=${month}&invoiceProjectId=${invoiceProjectId}`
 };
 
 export default api;

@@ -19,9 +19,14 @@ export default {
                 <div v-for="ip in invoiceProjects" :key="ip.id" class="card report-card">
                     <div class="report-header">
                         <h2>{{ ip.projectNumber }} {{ ip.name }}</h2>
-                        <button class="btn btn-primary" @click="downloadExcel(ip.id)">
-                            Last ned Excel
-                        </button>
+                        <div class="report-actions">
+                            <button class="btn btn-primary" @click="downloadExcel(ip.id)">
+                                Last ned Excel
+                            </button>
+                            <button class="btn btn-secondary" @click="downloadPdf(ip.id)">
+                                Last ned PDF
+                            </button>
+                        </div>
                     </div>
 
                     <div v-if="getProjectData(ip.id).length === 0" class="no-data">
@@ -149,6 +154,10 @@ export default {
         },
         downloadExcel(invoiceProjectId) {
             const url = api.getMonthlyReportExcelUrl(this.year, this.month, invoiceProjectId);
+            window.location.href = url;
+        },
+        downloadPdf(invoiceProjectId) {
+            const url = api.getMonthlyReportPdfUrl(this.year, this.month, invoiceProjectId);
             window.location.href = url;
         }
     }
