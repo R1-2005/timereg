@@ -67,6 +67,7 @@ Ingen ekstern database. SQLite-filen lever i prosjektmappen. Skjemaendringer hå
 │       ├── components/
 │       │   ├── admin-consultants.js
 │       │   ├── admin-projects.js
+│       │   ├── home.js
 │       │   ├── login.js
 │       │   ├── month-picker.js
 │       │   └── time-grid.js

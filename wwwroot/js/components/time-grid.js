@@ -16,6 +16,7 @@ export default {
                                 {{ day }}
                             </th>
                             <th class="sum-col">Sum</th>
+                            <th class="action-col"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -45,6 +46,14 @@ export default {
                             <td class="sum-col">
                                 <span v-if="rowIndex < rows.length - 1">{{ formatHours(getRowSum(row.issueKey)) }}</span>
                             </td>
+                            <td class="action-col">
+                                <button
+                                    v-if="rowIndex < rows.length - 1"
+                                    class="btn-delete"
+                                    @click="deleteRow(row.issueKey)"
+                                    title="Slett rad"
+                                >&times;</button>
+                            </td>
                         </tr>
 
                         <!-- Sum row -->
@@ -54,6 +63,7 @@ export default {
                                 <strong>{{ formatHours(getDaySum(day)) }}</strong>
                             </td>
                             <td class="sum-col"><strong>{{ formatHours(getTotalSum()) }}</strong></td>
+                            <td class="action-col"></td>
                         </tr>
 
                         <!-- Invoice project distribution rows -->
@@ -65,6 +75,7 @@ export default {
                                 {{ formatDistribution(getInvoiceProjectDaySum(ip.id, day)) }}
                             </td>
                             <td class="sum-col">{{ formatDistribution(getInvoiceProjectTotalSum(ip.id)) }}</td>
+                            <td class="action-col"></td>
                         </tr>
                     </tbody>
                 </table>
@@ -342,6 +353,26 @@ export default {
                 }
             }
             return sum;
+        },
+
+        async deleteRow(issueKey) {
+            const rowSum = this.getRowSum(issueKey);
+
+            if (rowSum > 0) {
+                const confirmed = confirm(`Er du sikker på at du vil slette alle timer for ${issueKey}? (${this.formatHours(rowSum)} timer)`);
+                if (!confirmed) return;
+            }
+
+            this.saving = true;
+            this.error = null;
+            try {
+                await api.deleteTimeEntriesByIssue(this.consultantId, issueKey, this.year, this.month);
+                this.entries = this.entries.filter(e => e.jiraIssueKey !== issueKey);
+            } catch (e) {
+                this.error = 'Kunne ikke slette: ' + e.message;
+            } finally {
+                this.saving = false;
+            }
         }
     }
 };

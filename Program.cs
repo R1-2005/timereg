@@ -145,4 +145,14 @@ timeEntries.MapDelete("/{id:int}", async (int id, TimeEntryRepository repo) =>
     return deleted ? Results.NoContent() : Results.NotFound();
 });
 
+timeEntries.MapDelete("/by-issue", async (int consultantId, string jiraIssueKey, int year, int month, TimeEntryRepository repo) =>
+{
+    var rowsDeleted = await repo.DeleteByConsultantAndIssueAsync(consultantId, jiraIssueKey, year, month);
+    return Results.Ok(new { deleted = rowsDeleted });
+});
+
+// Monthly summary
+api.MapGet("/monthly-summary", async (int year, int month, TimeEntryRepository repo) =>
+    Results.Ok(await repo.GetMonthlySummaryAsync(year, month)));
+
 app.Run();

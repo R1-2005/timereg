@@ -1,5 +1,6 @@
 import api from './services/api.js';
 import Login from './components/login.js';
+import Home from './components/home.js';
 import AdminConsultants from './components/admin-consultants.js';
 import AdminProjects from './components/admin-projects.js';
 import MonthPicker from './components/month-picker.js';
@@ -10,6 +11,7 @@ const { createApp, ref, onMounted } = Vue;
 const App = {
     components: {
         Login,
+        Home,
         AdminConsultants,
         AdminProjects,
         MonthPicker,
@@ -46,6 +48,11 @@ const App = {
             <nav class="nav">
                 <ul class="nav-tabs">
                     <li>
+                        <a href="#" :class="{ active: tab === 'hjem' }" @click.prevent="tab = 'hjem'">
+                            Hjem
+                        </a>
+                    </li>
+                    <li>
                         <a href="#" :class="{ active: tab === 'timeregistrering' }" @click.prevent="tab = 'timeregistrering'">
                             Timeregistrering
                         </a>
@@ -68,6 +75,10 @@ const App = {
             </nav>
 
             <div class="container">
+                <div v-if="tab === 'hjem'">
+                    <Home />
+                </div>
+
                 <div v-if="tab === 'timeregistrering'">
                     <MonthPicker
                         :year="selectedYear"
@@ -100,7 +111,7 @@ const App = {
         const loading = ref(true);
         const noConsultants = ref(false);
         const consultant = ref(null);
-        const tab = ref('timeregistrering');
+        const tab = ref('hjem');
 
         const now = new Date();
         const selectedYear = ref(now.getFullYear());
