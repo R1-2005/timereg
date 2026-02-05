@@ -133,36 +133,54 @@ public class TimeEntryRepository
 
         return await connection.QueryAsync<MonthSummaryRow>(
             """
+            WITH ConsultantTotals AS (
+                SELECT
+                    c.Id AS ConsultantId,
+                    c.FirstName,
+                    c.LastName,
+                    COALESCE(SUM(te.Hours), 0) AS TotalHours
+                FROM Consultants c
+                LEFT JOIN TimeEntries te ON te.ConsultantId = c.Id
+                    AND te.Date >= @StartDate
+                    AND te.Date <= @EndDate
+                GROUP BY c.Id
+            ),
+            DistributedTotals AS (
+                SELECT
+                    te.ConsultantId,
+                    dk.InvoiceProjectId,
+                    COALESCE(SUM(te.Hours * dk.Percentage / 100.0), 0) AS DistributedHours
+                FROM TimeEntries te
+                INNER JOIN DistributionKeys dk ON dk.JiraProjectId = te.JiraProjectId
+                WHERE te.Date >= @StartDate AND te.Date <= @EndDate
+                GROUP BY te.ConsultantId, dk.InvoiceProjectId
+            )
             SELECT
-                c.Id AS ConsultantId,
-                c.FirstName,
-                c.LastName,
-                COALESCE(SUM(te.Hours), 0) AS TotalHours,
+                ct.ConsultantId,
+                ct.FirstName,
+                ct.LastName,
+                ct.TotalHours,
                 ip.Id AS InvoiceProjectId,
                 ip.ProjectNumber,
                 ip.Name AS InvoiceProjectName,
-                COALESCE(SUM(te.Hours * dk.Percentage / 100), 0) AS DistributedHours
-            FROM Consultants c
+                COALESCE(dt.DistributedHours, 0) AS DistributedHours
+            FROM ConsultantTotals ct
             CROSS JOIN InvoiceProjects ip
-            LEFT JOIN TimeEntries te ON te.ConsultantId = c.Id
-                AND te.Date >= @StartDate
-                AND te.Date <= @EndDate
-            LEFT JOIN DistributionKeys dk ON dk.JiraProjectId = te.JiraProjectId
-                AND dk.InvoiceProjectId = ip.Id
-            GROUP BY c.Id, ip.Id
-            ORDER BY c.FirstName, c.LastName, ip.ProjectNumber
+            LEFT JOIN DistributedTotals dt ON dt.ConsultantId = ct.ConsultantId
+                AND dt.InvoiceProjectId = ip.Id
+            ORDER BY ct.FirstName, ct.LastName, ip.ProjectNumber
             """, new { StartDate = startDate, EndDate = endDate });
     }
 
     public class MonthSummaryRow
     {
         public int ConsultantId { get; set; }
-        public required string FirstName { get; set; }
-        public required string LastName { get; set; }
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
         public decimal TotalHours { get; set; }
         public int InvoiceProjectId { get; set; }
-        public required string ProjectNumber { get; set; }
-        public required string InvoiceProjectName { get; set; }
+        public string ProjectNumber { get; set; } = "";
+        public string InvoiceProjectName { get; set; } = "";
         public decimal DistributedHours { get; set; }
     }
 
