@@ -177,11 +177,11 @@ public class TimeEntryRepository
         public int ConsultantId { get; set; }
         public string FirstName { get; set; } = "";
         public string LastName { get; set; } = "";
-        public decimal TotalHours { get; set; }
+        public double TotalHours { get; set; }
         public int InvoiceProjectId { get; set; }
         public string ProjectNumber { get; set; } = "";
         public string InvoiceProjectName { get; set; } = "";
-        public decimal DistributedHours { get; set; }
+        public double DistributedHours { get; set; }
     }
 
     private class TimeEntryRow
