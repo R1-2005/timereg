@@ -102,7 +102,7 @@ Alle fire faser fra PRD er fullført.
 
 ### Navigasjon (etter innlogging)
 - **Hjem** — Oversikt over alle konsulenter med fakturert tid og utfyllingsgrad (fargekodert: rød/orange/grønn)
-- **Timeregistrering** — Registrer timer per Jira-sak i månedsrutenett med sletteknapp per rad
+- **Timeregistrering** — Registrer timer per Jira-sak i månedsrutenett med ukedager, helgmarkering (rød tekst) og sletteknapp per rad
 - **Rapport** — Faktureringsgrunnlag per fakturaprosjekt med Excel- og PDF-eksport
 - **Admin** — Administrer konsulenter og Jira-prosjekter med fordelingsnøkler
 
