@@ -9,6 +9,7 @@ Internt timeregistreringssystem for konsulenter. Timer registreres per Jira-sak 
 - **Backend:** .NET 10 (C#), minimal API
 - **Frontend:** Vue 3 via CDN (ingen byggsteg, ingen npm/node)
 - **Database:** SQLite via Dapper
+- **Excel-eksport:** ClosedXML
 - **Produksjon:** Kjører i IIS på Windows Server
 - **Utvikling:** Crostini Linux (Chromebook) og Windows
 
@@ -93,6 +94,25 @@ Ved første kjøring skal databasen seedes med:
 - De fire fakturaprosjektene (10108, 10607, 10608, 11003)
 - Alle Jira-prosjekter med fordelingsnøkler fra PRD
 - Ingen konsulenter (legges inn manuelt via admin)
+
+## Implementerte funksjoner
+
+### Navigasjon (etter innlogging)
+- **Hjem** — Oversikt over alle konsulenter og fakturert tid per måned
+- **Timeregistrering** — Registrer timer per Jira-sak i månedsrutenett
+- **Rapport** — Faktureringsgrunnlag per fakturaprosjekt med Excel-eksport
+- **Admin** — Administrer konsulenter og Jira-prosjekter med fordelingsnøkler
+
+### API-endepunkter
+- `POST /api/login` — Innlogging med fornavn og e-post
+- `GET/POST/PUT/DELETE /api/consultants` — Konsulent-CRUD
+- `GET /api/invoice-projects` — Liste fakturaprosjekter
+- `GET/POST/PUT/DELETE /api/jira-projects` — Jira-prosjekter med fordelingsnøkler
+- `GET/PUT/DELETE /api/time-entries` — Timeregistreringer
+- `DELETE /api/time-entries/by-issue` — Slett alle timer for en Jira-sak
+- `GET /api/monthly-summary` — Sammendrag for hjem-siden
+- `GET /api/reports/monthly` — Faktureringsdata per prosjekt
+- `GET /api/reports/monthly/excel` — Excel-eksport per fakturaprosjekt
 
 ## Viktig kontekst
 
