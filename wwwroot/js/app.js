@@ -5,6 +5,7 @@ import AdminConsultants from './components/admin-consultants.js';
 import AdminProjects from './components/admin-projects.js';
 import MonthPicker from './components/month-picker.js';
 import TimeGrid from './components/time-grid.js';
+import ReportView from './components/report-view.js';
 
 const { createApp, ref, onMounted } = Vue;
 
@@ -15,7 +16,8 @@ const App = {
         AdminConsultants,
         AdminProjects,
         MonthPicker,
-        TimeGrid
+        TimeGrid,
+        ReportView
     },
     template: `
         <div v-if="loading" class="loading-container">
@@ -94,10 +96,7 @@ const App = {
                 </div>
 
                 <div v-if="tab === 'rapport'">
-                    <div class="card">
-                        <h2>Rapport</h2>
-                        <p style="color: #666;">Kommer i Fase 4</p>
-                    </div>
+                    <ReportView />
                 </div>
 
                 <div v-if="tab === 'admin'">

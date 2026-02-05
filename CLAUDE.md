@@ -54,6 +54,7 @@ Ingen ekstern database. SQLite-filen lever i prosjektmappen. Skjemaendringer hå
 │   ├── ConsultantRepository.cs
 │   ├── InvoiceProjectRepository.cs
 │   ├── JiraProjectRepository.cs
+│   ├── ReportRepository.cs
 │   └── TimeEntryRepository.cs
 ├── Scripts/
 │   ├── 001_initial_schema.sql
@@ -70,6 +71,7 @@ Ingen ekstern database. SQLite-filen lever i prosjektmappen. Skjemaendringer hå
 │       │   ├── home.js
 │       │   ├── login.js
 │       │   ├── month-picker.js
+│       │   ├── report-view.js
 │       │   └── time-grid.js
 │       └── services/
 │           └── api.js

@@ -64,7 +64,12 @@ const api = {
         api.delete(`/api/time-entries/by-issue?consultantId=${consultantId}&jiraIssueKey=${encodeURIComponent(jiraIssueKey)}&year=${year}&month=${month}`),
 
     // Monthly summary
-    getMonthlySummary: (year, month) => api.get(`/api/monthly-summary?year=${year}&month=${month}`)
+    getMonthlySummary: (year, month) => api.get(`/api/monthly-summary?year=${year}&month=${month}`),
+
+    // Reports
+    getMonthlyReport: (year, month) => api.get(`/api/reports/monthly?year=${year}&month=${month}`),
+    getMonthlyReportExcelUrl: (year, month, invoiceProjectId) =>
+        `/api/reports/monthly/excel?year=${year}&month=${month}&invoiceProjectId=${invoiceProjectId}`
 };
 
 export default api;

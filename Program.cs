@@ -1,3 +1,4 @@
+using ClosedXML.Excel;
 using timereg.Data;
 using timereg.Models;
 using timereg.Repositories;
@@ -11,6 +12,7 @@ builder.Services.AddScoped<ConsultantRepository>();
 builder.Services.AddScoped<InvoiceProjectRepository>();
 builder.Services.AddScoped<JiraProjectRepository>();
 builder.Services.AddScoped<TimeEntryRepository>();
+builder.Services.AddScoped<ReportRepository>();
 
 var app = builder.Build();
 
@@ -154,5 +156,99 @@ timeEntries.MapDelete("/by-issue", async (int consultantId, string jiraIssueKey,
 // Monthly summary
 api.MapGet("/monthly-summary", async (int year, int month, TimeEntryRepository repo) =>
     Results.Ok(await repo.GetMonthlySummaryAsync(year, month)));
+
+// Reports
+var reports = api.MapGroup("/reports");
+
+reports.MapGet("/monthly", async (int year, int month, ReportRepository repo) =>
+    Results.Ok(await repo.GetMonthlyReportAsync(year, month)));
+
+reports.MapGet("/monthly/excel", async (int year, int month, int invoiceProjectId, ReportRepository repo, InvoiceProjectRepository ipRepo) =>
+{
+    var data = await repo.GetMonthlyReportAsync(year, month);
+    var projectData = data.Where(r => r.InvoiceProjectId == invoiceProjectId).ToList();
+
+    var invoiceProject = (await ipRepo.GetAllAsync()).FirstOrDefault(ip => ip.Id == invoiceProjectId);
+    if (invoiceProject == null)
+        return Results.NotFound();
+
+    using var workbook = new XLWorkbook();
+    var worksheet = workbook.Worksheets.Add("Fakturering");
+
+    // Header
+    var monthNames = new[] { "", "Januar", "Februar", "Mars", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Desember" };
+    worksheet.Cell(1, 1).Value = $"{invoiceProject.ProjectNumber} {invoiceProject.Name}";
+    worksheet.Cell(1, 1).Style.Font.Bold = true;
+    worksheet.Cell(1, 1).Style.Font.FontSize = 14;
+    worksheet.Cell(2, 1).Value = $"{monthNames[month]} {year}";
+
+    // Column headers
+    worksheet.Cell(4, 1).Value = "Konsulent";
+    worksheet.Cell(4, 2).Value = "Jira-sak";
+    worksheet.Cell(4, 3).Value = "Timer";
+    worksheet.Range(4, 1, 4, 3).Style.Font.Bold = true;
+    worksheet.Range(4, 1, 4, 3).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+
+    var row = 5;
+    var currentConsultant = "";
+    var consultantTotal = 0.0;
+    var grandTotal = 0.0;
+
+    foreach (var entry in projectData)
+    {
+        var consultantName = $"{entry.FirstName} {entry.LastName}";
+
+        if (currentConsultant != "" && currentConsultant != consultantName)
+        {
+            // Sum row for previous consultant
+            worksheet.Cell(row, 1).Value = $"Sum {currentConsultant}";
+            worksheet.Cell(row, 1).Style.Font.Italic = true;
+            worksheet.Cell(row, 3).Value = consultantTotal;
+            worksheet.Cell(row, 3).Style.Font.Italic = true;
+            worksheet.Cell(row, 3).Style.NumberFormat.Format = "0.00";
+            row++;
+            row++; // Empty row
+            consultantTotal = 0;
+        }
+
+        currentConsultant = consultantName;
+        worksheet.Cell(row, 1).Value = consultantName;
+        worksheet.Cell(row, 2).Value = entry.JiraIssueKey;
+        worksheet.Cell(row, 3).Value = entry.Hours;
+        worksheet.Cell(row, 3).Style.NumberFormat.Format = "0.00";
+
+        consultantTotal += entry.Hours;
+        grandTotal += entry.Hours;
+        row++;
+    }
+
+    // Last consultant sum
+    if (currentConsultant != "")
+    {
+        worksheet.Cell(row, 1).Value = $"Sum {currentConsultant}";
+        worksheet.Cell(row, 1).Style.Font.Italic = true;
+        worksheet.Cell(row, 3).Value = consultantTotal;
+        worksheet.Cell(row, 3).Style.Font.Italic = true;
+        worksheet.Cell(row, 3).Style.NumberFormat.Format = "0.00";
+        row++;
+    }
+
+    // Grand total
+    row++;
+    worksheet.Cell(row, 1).Value = "TOTALT";
+    worksheet.Cell(row, 1).Style.Font.Bold = true;
+    worksheet.Cell(row, 3).Value = grandTotal;
+    worksheet.Cell(row, 3).Style.Font.Bold = true;
+    worksheet.Cell(row, 3).Style.NumberFormat.Format = "0.00";
+
+    worksheet.Columns().AdjustToContents();
+
+    using var stream = new MemoryStream();
+    workbook.SaveAs(stream);
+    stream.Position = 0;
+
+    var fileName = $"Fakturering_{invoiceProject.ProjectNumber}_{year}-{month:D2}.xlsx";
+    return Results.File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+});
 
 app.Run();
