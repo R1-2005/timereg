@@ -62,9 +62,9 @@ export default {
                                 <span class="invoice-project">{{ ip.projectNumber }} {{ ip.name }}</span>
                             </td>
                             <td v-for="day in daysInMonth" :key="day" class="day-col" :class="{ weekend: isWeekend(day) }">
-                                {{ formatHours(getInvoiceProjectDaySum(ip.id, day)) }}
+                                {{ formatDistribution(getInvoiceProjectDaySum(ip.id, day)) }}
                             </td>
-                            <td class="sum-col">{{ formatHours(getInvoiceProjectTotalSum(ip.id)) }}</td>
+                            <td class="sum-col">{{ formatDistribution(getInvoiceProjectTotalSum(ip.id)) }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -159,6 +159,11 @@ export default {
         formatHours(hours) {
             if (!hours || hours === 0) return '';
             return hours.toFixed(1).replace('.', ',');
+        },
+
+        formatDistribution(hours) {
+            if (!hours || hours === 0) return '';
+            return hours.toFixed(2).replace('.', ',');
         },
 
         parseHours(value) {

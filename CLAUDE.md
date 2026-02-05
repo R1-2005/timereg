@@ -6,7 +6,7 @@ Internt timeregistreringssystem for konsulenter. Timer registreres per Jira-sak 
 
 ## Teknologistakk
 
-- **Backend:** .NET 10 (C#), minimal API eller controller-basert
+- **Backend:** .NET 10 (C#), minimal API
 - **Frontend:** Vue 3 via CDN (ingen byggsteg, ingen npm/node)
 - **Database:** SQLite via Dapper
 - **Produksjon:** Kjører i IIS på Windows Server
@@ -42,24 +42,19 @@ Ingen ekstern database. SQLite-filen lever i prosjektmappen. Skjemaendringer hå
 ├── appsettings.json
 ├── Models/
 │   ├── Consultant.cs
-│   ├── JiraProject.cs
-│   ├── InvoiceProject.cs
 │   ├── DistributionKey.cs
+│   ├── Dtos.cs
+│   ├── InvoiceProject.cs
+│   ├── JiraProject.cs
 │   └── TimeEntry.cs
 ├── Data/
+│   ├── DatabaseInitializer.cs
 │   └── DbConnectionFactory.cs
 ├── Repositories/
 │   ├── ConsultantRepository.cs
-│   ├── TimeEntryRepository.cs
-│   ├── JiraProjectRepository.cs
 │   ├── InvoiceProjectRepository.cs
-│   └── ReportRepository.cs
-├── Controllers/ (eller Endpoints/)
-│   ├── ConsultantController.cs
-│   ├── TimeEntryController.cs
-│   ├── JiraProjectController.cs
-│   ├── InvoiceProjectController.cs
-│   └── ReportController.cs
+│   ├── JiraProjectRepository.cs
+│   └── TimeEntryRepository.cs
 ├── Scripts/
 │   ├── 001_initial_schema.sql
 │   └── 002_seed_data.sql
@@ -70,11 +65,11 @@ Ingen ekstern database. SQLite-filen lever i prosjektmappen. Skjemaendringer hå
 │   └── js/
 │       ├── app.js
 │       ├── components/
-│       │   ├── time-grid.js
-│       │   ├── month-picker.js
 │       │   ├── admin-consultants.js
 │       │   ├── admin-projects.js
-│       │   └── report-view.js
+│       │   ├── login.js
+│       │   ├── month-picker.js
+│       │   └── time-grid.js
 │       └── services/
 │           └── api.js
 └── timeregistrering.db
