@@ -1,0 +1,65 @@
+const api = {
+    async get(url) {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+    },
+
+    async post(url, data) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.error || `HTTP ${response.status}`);
+        }
+        return response.json();
+    },
+
+    async put(url, data) {
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.error || `HTTP ${response.status}`);
+        }
+        return response.json();
+    },
+
+    async delete(url) {
+        const response = await fetch(url, { method: 'DELETE' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return true;
+    },
+
+    // Consultants
+    getConsultants: () => api.get('/api/consultants'),
+    createConsultant: (data) => api.post('/api/consultants', data),
+    updateConsultant: (id, data) => api.put(`/api/consultants/${id}`, data),
+    deleteConsultant: (id) => api.delete(`/api/consultants/${id}`),
+
+    // Login
+    login: (firstName, email) => api.post('/api/login', { firstName, email }),
+
+    // Invoice Projects
+    getInvoiceProjects: () => api.get('/api/invoice-projects'),
+
+    // Jira Projects
+    getJiraProjects: () => api.get('/api/jira-projects'),
+    createJiraProject: (data) => api.post('/api/jira-projects', data),
+    updateJiraProject: (id, data) => api.put(`/api/jira-projects/${id}`, data),
+    deleteJiraProject: (id) => api.delete(`/api/jira-projects/${id}`),
+
+    // Time Entries
+    getTimeEntries: (consultantId, year, month) =>
+        api.get(`/api/time-entries?consultantId=${consultantId}&year=${year}&month=${month}`),
+    upsertTimeEntry: (data) => api.put('/api/time-entries', data),
+    deleteTimeEntry: (id) => api.delete(`/api/time-entries/${id}`)
+};
+
+export default api;
