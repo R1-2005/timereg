@@ -98,10 +98,12 @@ Ved første kjøring skal databasen seedes med:
 
 ## Implementerte funksjoner
 
+Alle fire faser fra PRD er fullført.
+
 ### Navigasjon (etter innlogging)
-- **Hjem** — Oversikt over alle konsulenter og fakturert tid per måned
-- **Timeregistrering** — Registrer timer per Jira-sak i månedsrutenett
-- **Rapport** — Faktureringsgrunnlag per fakturaprosjekt med Excel-eksport
+- **Hjem** — Oversikt over alle konsulenter med fakturert tid og utfyllingsgrad (fargekodert: rød/orange/grønn)
+- **Timeregistrering** — Registrer timer per Jira-sak i månedsrutenett med sletteknapp per rad
+- **Rapport** — Faktureringsgrunnlag per fakturaprosjekt med Excel- og PDF-eksport
 - **Admin** — Administrer konsulenter og Jira-prosjekter med fordelingsnøkler
 
 ### API-endepunkter
