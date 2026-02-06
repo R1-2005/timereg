@@ -1,14 +1,17 @@
 import api from '../services/api.js';
+import MonthPicker from './month-picker.js';
 
 export default {
     name: 'ReportView',
+    components: { MonthPicker },
     template: `
         <div class="report-view">
-            <div class="month-picker">
-                <button class="month-btn" @click="prevMonth">&larr;</button>
-                <span class="month-display">{{ monthName }} {{ year }}</span>
-                <button class="month-btn" @click="nextMonth">&rarr;</button>
-            </div>
+            <MonthPicker
+                :year="year"
+                :month="month"
+                @update:year="year = $event"
+                @update:month="month = $event"
+            />
 
             <div v-if="loading" class="loading">Laster...</div>
             <div v-else-if="error" class="error">{{ error }}</div>
@@ -74,12 +77,9 @@ export default {
             error: null
         };
     },
-    computed: {
-        monthName() {
-            const names = ['', 'Januar', 'Februar', 'Mars', 'April', 'Mai', 'Juni',
-                'Juli', 'August', 'September', 'Oktober', 'November', 'Desember'];
-            return names[this.month];
-        }
+    watch: {
+        year() { this.load(); },
+        month() { this.load(); }
     },
     async mounted() {
         await this.load();
@@ -100,24 +100,6 @@ export default {
             } finally {
                 this.loading = false;
             }
-        },
-        prevMonth() {
-            if (this.month === 1) {
-                this.month = 12;
-                this.year--;
-            } else {
-                this.month--;
-            }
-            this.load();
-        },
-        nextMonth() {
-            if (this.month === 12) {
-                this.month = 1;
-                this.year++;
-            } else {
-                this.month++;
-            }
-            this.load();
         },
         formatHours(hours) {
             if (!hours || hours === 0) return '0,00';

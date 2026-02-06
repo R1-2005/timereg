@@ -1,14 +1,17 @@
 import api from '../services/api.js';
+import MonthPicker from './month-picker.js';
 
 export default {
     name: 'Home',
+    components: { MonthPicker },
     template: `
         <div class="home">
-            <div class="month-picker">
-                <button class="month-btn" @click="prevMonth">&larr;</button>
-                <span class="month-display">{{ monthName }} {{ year }}</span>
-                <button class="month-btn" @click="nextMonth">&rarr;</button>
-            </div>
+            <MonthPicker
+                :year="year"
+                :month="month"
+                @update:year="year = $event"
+                @update:month="month = $event"
+            />
 
             <div v-if="loading" class="loading">Laster...</div>
             <div v-else-if="error" class="error">{{ error }}</div>
@@ -109,6 +112,10 @@ export default {
             return this.consultants.reduce((sum, c) => sum + c.totalHours, 0);
         }
     },
+    watch: {
+        year() { this.load(); },
+        month() { this.load(); }
+    },
     async mounted() {
         await this.load();
     },
@@ -128,24 +135,6 @@ export default {
             } finally {
                 this.loading = false;
             }
-        },
-        prevMonth() {
-            if (this.month === 1) {
-                this.month = 12;
-                this.year--;
-            } else {
-                this.month--;
-            }
-            this.load();
-        },
-        nextMonth() {
-            if (this.month === 12) {
-                this.month = 1;
-                this.year++;
-            } else {
-                this.month++;
-            }
-            this.load();
         },
         formatHours(hours) {
             if (!hours || hours === 0) return '-';
