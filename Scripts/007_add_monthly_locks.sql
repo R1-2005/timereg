@@ -1,0 +1,8 @@
+CREATE TABLE MonthlyLocks (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ConsultantId INTEGER NOT NULL REFERENCES Consultants(Id) ON DELETE CASCADE,
+    Year INTEGER NOT NULL,
+    Month INTEGER NOT NULL,
+    LockedAt TEXT NOT NULL,
+    UNIQUE(ConsultantId, Year, Month)
+);

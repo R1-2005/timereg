@@ -23,6 +23,7 @@ export default {
                         <th>Ansatt</th>
                         <th>Sluttet</th>
                         <th>Admin</th>
+                        <th>Timer</th>
                         <th style="width: 120px;">Handlinger</th>
                     </tr>
                 </thead>
@@ -33,13 +34,14 @@ export default {
                         <td>{{ formatMonth(c.employedFrom) }}</td>
                         <td>{{ formatMonth(c.employedTo) }}</td>
                         <td>{{ c.isAdmin ? 'Ja' : '' }}</td>
+                        <td>{{ c.canRegisterHours ? 'Ja' : 'Nei' }}</td>
                         <td class="actions">
                             <button class="btn btn-sm btn-secondary" @click="openModal(c)">Rediger</button>
                             <button class="btn btn-sm btn-danger" @click="remove(c)">Slett</button>
                         </td>
                     </tr>
                     <tr v-if="consultants.length === 0">
-                        <td colspan="6" style="text-align: center; color: #666;">
+                        <td colspan="7" style="text-align: center; color: #666;">
                             Ingen konsulenter registrert
                         </td>
                     </tr>
@@ -77,11 +79,19 @@ export default {
                             <input type="month" v-model="form.employedToMonth">
                         </div>
                     </div>
-                    <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
-                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                            <input type="checkbox" v-model="form.isAdmin">
-                            Administrator
-                        </label>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" v-model="form.isAdmin">
+                                Administrator
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" v-model="form.canRegisterHours">
+                                Timeføring
+                            </label>
+                        </div>
                     </div>
 
                     <div class="modal-actions">
@@ -97,7 +107,7 @@ export default {
     data() {
         return {
             consultants: [],
-            form: { firstName: '', lastName: '', email: '', isAdmin: false, employedFromMonth: '', employedToMonth: '' },
+            form: { firstName: '', lastName: '', email: '', isAdmin: false, canRegisterHours: true, employedFromMonth: '', employedToMonth: '' },
             showModal: false,
             editing: null,
             error: null,
@@ -125,11 +135,12 @@ export default {
                     lastName: consultant.lastName,
                     email: consultant.email,
                     isAdmin: consultant.isAdmin,
+                    canRegisterHours: consultant.canRegisterHours,
                     employedFromMonth: this.dateToMonth(consultant.employedFrom),
                     employedToMonth: this.dateToMonth(consultant.employedTo)
                 };
             } else {
-                this.form = { firstName: '', lastName: '', email: '', isAdmin: false, employedFromMonth: '', employedToMonth: '' };
+                this.form = { firstName: '', lastName: '', email: '', isAdmin: false, canRegisterHours: true, employedFromMonth: '', employedToMonth: '' };
             }
 
             this.showModal = true;
@@ -152,6 +163,7 @@ export default {
                 lastName: this.form.lastName,
                 email: this.form.email,
                 isAdmin: this.form.isAdmin,
+                canRegisterHours: this.form.canRegisterHours,
                 employedFrom: this.monthToFirstDay(this.form.employedFromMonth),
                 employedTo: this.monthToLastDay(this.form.employedToMonth)
             };

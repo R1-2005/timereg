@@ -149,7 +149,7 @@ body {
     color: var(--color-text);
 }
 
-.form-group input,
+.form-group input:not([type="checkbox"]),
 .form-group select {
     width: 100%;
     padding: 10px 12px;
@@ -759,6 +759,41 @@ tfoot .sum-row td {
     color: var(--color-text-muted);
     font-style: italic;
     padding: 16px 0;
+}
+
+/* Lock button */
+.btn-lock {
+    background: var(--color-success);
+    color: white;
+}
+
+.btn-lock:hover {
+    background: #059669;
+}
+
+.btn-lock-undo {
+    background: var(--color-border);
+    color: var(--color-text);
+}
+
+.btn-lock-undo:hover {
+    background: #cbd5e1;
+}
+
+/* Done badge */
+.badge-done {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+/* Disabled hours input */
+.hours-input:disabled {
+    color: var(--color-text-muted);
+    cursor: not-allowed;
+}
+
+.hours-input:disabled:hover {
+    background: transparent;
 }
 
 /* Completion percentage colors */

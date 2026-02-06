@@ -71,6 +71,14 @@ const api = {
         `/api/time-entries/export?consultantId=${consultantId}&year=${year}&month=${month}`,
     importTimeEntries: (data) => api.post('/api/time-entries/import', data),
 
+    // Monthly locks
+    getMonthlyLock: (consultantId, year, month) =>
+        api.get(`/api/monthly-locks?consultantId=${consultantId}&year=${year}&month=${month}`),
+    setMonthlyLock: (consultantId, year, month, locked) =>
+        api.put('/api/monthly-locks', { consultantId, year, month, locked }),
+    getMonthlyLocksByMonth: (year, month) =>
+        api.get(`/api/monthly-locks/by-month?year=${year}&month=${month}`),
+
     // Monthly summary
     getMonthlySummary: (year, month) => api.get(`/api/monthly-summary?year=${year}&month=${month}`),
 

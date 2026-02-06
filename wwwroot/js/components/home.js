@@ -24,6 +24,7 @@ export default {
                     <thead>
                         <tr>
                             <th>Konsulent</th>
+                            <th>Status</th>
                             <th class="text-right">Utfylt</th>
                             <th class="text-right">Timer totalt</th>
                             <th v-for="ip in invoiceProjects" :key="ip.id" class="text-right">
@@ -34,6 +35,9 @@ export default {
                     <tbody>
                         <tr v-for="consultant in consultants" :key="consultant.id">
                             <td>{{ consultant.firstName }} {{ consultant.lastName }}</td>
+                            <td>
+                                <span v-if="isLocked(consultant.id)" class="badge badge-done">Ferdig</span>
+                            </td>
                             <td class="text-right">
                                 <span :class="getCompletionClass(consultant.completionPercent)">
                                     {{ consultant.completionPercent }}%
@@ -48,6 +52,7 @@ export default {
                     <tfoot>
                         <tr class="sum-row">
                             <td><strong>Sum</strong></td>
+                            <td></td>
                             <td></td>
                             <td class="text-right"><strong>{{ formatHours(totalHours) }}</strong></td>
                             <td v-for="ip in invoiceProjects" :key="ip.id" class="text-right">
@@ -65,6 +70,7 @@ export default {
             month: new Date().getMonth() + 1,
             summaryData: [],
             invoiceProjects: [],
+            monthlyLocks: [],
             loading: true,
             error: null
         };
@@ -124,12 +130,14 @@ export default {
             this.loading = true;
             this.error = null;
             try {
-                const [summary, invoiceProjects] = await Promise.all([
+                const [summary, invoiceProjects, locks] = await Promise.all([
                     api.getMonthlySummary(this.year, this.month),
-                    api.getInvoiceProjects()
+                    api.getInvoiceProjects(),
+                    api.getMonthlyLocksByMonth(this.year, this.month)
                 ]);
                 this.summaryData = summary;
                 this.invoiceProjects = invoiceProjects;
+                this.monthlyLocks = locks;
             } catch (e) {
                 this.error = 'Kunne ikke laste data: ' + e.message;
             } finally {
@@ -149,6 +157,9 @@ export default {
             return this.consultants.reduce((sum, c) => {
                 return sum + (c.distributions[invoiceProjectId] || 0);
             }, 0);
+        },
+        isLocked(consultantId) {
+            return this.monthlyLocks.some(l => l.consultantId === consultantId);
         },
         getCompletionClass(percent) {
             if (percent < 50) return 'completion-low';

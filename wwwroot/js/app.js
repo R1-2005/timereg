@@ -7,7 +7,7 @@ import MonthPicker from './components/month-picker.js';
 import TimeGrid from './components/time-grid.js';
 import ReportView from './components/report-view.js';
 
-const { createApp, ref, onMounted } = Vue;
+const { createApp, ref, watch, onMounted } = Vue;
 
 const App = {
     components: {
@@ -54,7 +54,7 @@ const App = {
                             Hjem
                         </a>
                     </li>
-                    <li>
+                    <li v-if="consultant.canRegisterHours">
                         <a href="#" :class="{ active: tab === 'timeregistrering' }" @click.prevent="tab = 'timeregistrering'">
                             Timeregistrering
                         </a>
@@ -94,13 +94,20 @@ const App = {
                                 <option value="hhmm">Timer som hh:mm</option>
                                 <option value="decimal">Timer som desimaltall</option>
                             </select>
-                            <button class="btn btn-secondary" @click="exportJson">
+                            <button v-if="!isMonthLocked" class="btn btn-secondary" @click="exportJson">
                                 Eksporter JSON
                             </button>
-                            <label class="btn btn-secondary import-btn">
+                            <label v-if="!isMonthLocked" class="btn btn-secondary import-btn">
                                 Importer JSON
                                 <input type="file" accept=".json" @change="importJson" hidden>
                             </label>
+                            <button
+                                class="btn"
+                                :class="isMonthLocked ? 'btn-lock-undo' : 'btn-lock'"
+                                @click="toggleMonthLock"
+                            >
+                                {{ isMonthLocked ? 'Angre ferdig-markering' : 'Marker som ferdig' }}
+                            </button>
                         </div>
                     </div>
                     <TimeGrid
@@ -109,6 +116,7 @@ const App = {
                         :year="selectedYear"
                         :month="selectedMonth"
                         :display-mode="displayMode"
+                        :locked="isMonthLocked"
                     />
                 </div>
 
@@ -133,6 +141,34 @@ const App = {
         const selectedYear = ref(now.getFullYear());
         const selectedMonth = ref(now.getMonth() + 1);
         const displayMode = ref('decimal');
+        const isMonthLocked = ref(false);
+
+        const loadLockStatus = async () => {
+            if (!consultant.value) return;
+            try {
+                const result = await api.getMonthlyLock(consultant.value.id, selectedYear.value, selectedMonth.value);
+                isMonthLocked.value = result.isLocked;
+            } catch (e) {
+                console.error('Could not load lock status:', e);
+            }
+        };
+
+        const toggleMonthLock = async () => {
+            if (!consultant.value) return;
+            const newLocked = !isMonthLocked.value;
+
+            if (newLocked) {
+                const confirmed = confirm('Marker måneden som ferdig? Timer vil bli skrivebeskyttet.');
+                if (!confirmed) return;
+            }
+
+            try {
+                const result = await api.setMonthlyLock(consultant.value.id, selectedYear.value, selectedMonth.value, newLocked);
+                isMonthLocked.value = result.isLocked;
+            } catch (e) {
+                alert('Kunne ikke endre status: ' + e.message);
+            }
+        };
 
         const checkConsultants = async () => {
             try {
@@ -150,14 +186,20 @@ const App = {
                 const saved = localStorage.getItem('consultant');
                 if (saved) {
                     consultant.value = JSON.parse(saved);
+                    await loadLockStatus();
                 }
             }
 
             loading.value = false;
         });
 
+        watch([selectedYear, selectedMonth], () => {
+            loadLockStatus();
+        });
+
         const onLogin = (c) => {
             consultant.value = c;
+            loadLockStatus();
         };
 
         const logout = () => {
@@ -223,9 +265,11 @@ const App = {
             selectedYear,
             selectedMonth,
             displayMode,
+            isMonthLocked,
             checkConsultants,
             onLogin,
             logout,
+            toggleMonthLock,
             timeGrid,
             exportJson,
             importJson

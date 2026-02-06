@@ -62,3 +62,11 @@ public class TimeEntryImportItem
     public DateOnly Date { get; set; }
     public decimal Hours { get; set; }
 }
+
+public class MonthlyLockToggleDto
+{
+    public int ConsultantId { get; set; }
+    public int Year { get; set; }
+    public int Month { get; set; }
+    public bool Locked { get; set; }
+}

@@ -32,14 +32,14 @@ export default {
                         <tr v-for="(row, rowIndex) in rows" :key="row.issueKey || 'new-' + rowIndex">
                             <td class="issue-col">
                                 <input
-                                    v-if="rowIndex === rows.length - 1"
+                                    v-if="rowIndex === rows.length - 1 && !locked"
                                     v-model="newIssueKey"
                                     @blur="addNewRow"
                                     @keydown.enter="addNewRow"
                                     placeholder="Ny sak..."
                                     class="issue-input"
                                 >
-                                <span v-else class="issue-key">{{ row.issueKey }}</span>
+                                <span v-else-if="rowIndex < rows.length - 1" class="issue-key">{{ row.issueKey }}</span>
                             </td>
                             <td v-for="day in daysInMonth" :key="day" class="day-col" :class="{ weekend: isWeekend(day) }">
                                 <input
@@ -49,6 +49,7 @@ export default {
                                     @blur="onBlur($event, row.issueKey, day)"
                                     @keydown.enter="$event.target.blur()"
                                     class="hours-input"
+                                    :disabled="locked"
                                 >
                             </td>
                             <td class="sum-col">
@@ -56,7 +57,7 @@ export default {
                             </td>
                             <td class="action-col">
                                 <button
-                                    v-if="rowIndex < rows.length - 1"
+                                    v-if="rowIndex < rows.length - 1 && !locked"
                                     class="btn-delete"
                                     @click="deleteRow(row.issueKey)"
                                     title="Slett rad"
@@ -106,6 +107,10 @@ export default {
         displayMode: {
             type: String,
             default: 'decimal'
+        },
+        locked: {
+            type: Boolean,
+            default: false
         }
     },
     data() {

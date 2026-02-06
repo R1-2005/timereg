@@ -109,6 +109,17 @@ UNIQUE(JiraProjectId, SectionId). Sum per JiraProject skal alltid være 100%.
 
 UNIQUE(ConsultantId, JiraIssueKey, Date)
 
+### MonthlyLocks
+| Kolonne | Type | Constraint |
+|---------|------|------------|
+| Id | INTEGER | PK AUTOINCREMENT |
+| ConsultantId | INTEGER NOT NULL | FK → Consultants ON DELETE CASCADE |
+| Year | INTEGER NOT NULL | |
+| Month | INTEGER NOT NULL | |
+| LockedAt | TEXT NOT NULL | ISO 8601 tidsstempel |
+
+UNIQUE(ConsultantId, Year, Month). Når en rad finnes er måneden markert som ferdig og skrivebeskyttet.
+
 ## API-endepunkter
 
 ### Innlogging
@@ -136,13 +147,18 @@ UNIQUE(ConsultantId, JiraIssueKey, Date)
 - `GET /api/jira-projects/export` → JSON-fil med alle prosjekter + fordelingsnøkler
 - `POST /api/jira-projects/import` ← `{ projects: JiraProjectCreateDto[] }` → `{ imported, updated, errors }`. Matcher på Key: oppdaterer eksisterende, oppretter nye.
 
+### Månedslås
+- `GET /api/monthly-locks?consultantId&year&month` → `{ isLocked, lockedAt }`
+- `PUT /api/monthly-locks` ← `MonthlyLockToggleDto { consultantId, year, month, locked }` — toggler lås
+- `GET /api/monthly-locks/by-month?year&month` → `MonthlyLock[]` (alle låser for måneden)
+
 ### Timeregistreringer
 - `GET /api/time-entries?consultantId&year&month` → `TimeEntry[]`
-- `PUT /api/time-entries` ← `TimeEntryUpsertDto` — upsert basert på (consultantId, jiraIssueKey, date). Validerer at Jira-prosjektprefikset finnes.
-- `DELETE /api/time-entries/{id}`
-- `DELETE /api/time-entries/by-issue?consultantId&jiraIssueKey&year&month` — slett alle timer for en sak i en måned
+- `PUT /api/time-entries` ← `TimeEntryUpsertDto` — upsert basert på (consultantId, jiraIssueKey, date). Validerer Jira-prosjektprefiks og månedslås.
+- `DELETE /api/time-entries/{id}` — validerer månedslås
+- `DELETE /api/time-entries/by-issue?consultantId&jiraIssueKey&year&month` — slett alle timer for en sak i en måned. Validerer månedslås.
 - `GET /api/time-entries/export?consultantId&year&month` → JSON-fil
-- `POST /api/time-entries/import` ← `TimeEntryImportDto` — sletter eksisterende for måneden, importerer nye
+- `POST /api/time-entries/import` ← `TimeEntryImportDto` — sletter eksisterende for måneden, importerer nye. Validerer månedslås.
 
 ### Oversikt og rapporter
 - `GET /api/monthly-summary?year&month` → sammendrag per konsulent for hjem-siden
@@ -155,14 +171,14 @@ UNIQUE(ConsultantId, JiraIssueKey, Date)
 | Komponent | Fil | Beskrivelse | API-kall |
 |-----------|-----|-------------|----------|
 | Login | `login.js` | Innlogging med fornavn + e-post, lagrer bruker i localStorage | `POST /api/login` |
-| Home | `home.js` | Oversikt ansatte i valgt måned, fargekodert utfyllingsgrad | `GET monthly-summary`, `GET consultants` |
-| TimeGrid | `time-grid.js` | Månedsrutenett for timeregistrering med autolagring, helgmarkering, sletteknapp per rad, JSON eksport/import, valgfri visning (hh:mm/desimal) | `GET/PUT/DELETE time-entries` |
+| Home | `home.js` | Oversikt ansatte i valgt måned, fargekodert utfyllingsgrad, ferdig-status per konsulent | `GET monthly-summary`, `GET consultants`, `GET monthly-locks/by-month` |
+| TimeGrid | `time-grid.js` | Månedsrutenett for timeregistrering med autolagring, helgmarkering, sletteknapp per rad, JSON eksport/import, valgfri visning (hh:mm/desimal). Støtter `locked`-prop for skrivebeskyttelse | `GET/PUT/DELETE time-entries` |
 | ReportView | `report-view.js` | Faktureringsgrunnlag per fakturaprosjekt med Excel/PDF-eksport | `GET reports/monthly` |
 | AdminConsultants | `admin-consultants.js` | CRUD konsulenter med admin-flagg og ansettelsesperiode | `GET/POST/PUT/DELETE consultants` |
 | AdminProjects | `admin-projects.js` | CRUD Jira-prosjekter med fordelingsnøkler og seksjonsfordeling, JSON eksport/import | `GET/POST/PUT/DELETE jira-projects`, `GET sections`, `GET invoice-projects` |
 | MonthPicker | `month-picker.js` | Gjenbrukbar månedsvelger med forrige/neste-navigasjon | (ingen) |
 
-App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synlig for IsAdmin-brukere.
+App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synlig for IsAdmin-brukere. Håndterer månedslås-tilstand og "Marker som ferdig"-knapp i timeregistreringsfanen.
 
 ## Forretningsregler
 
@@ -172,6 +188,7 @@ App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synl
 4. **Ansettelsesfiltrering:** Hjem og Rapport filtrerer på konsulenter ansatt i valgt måned (EmployedFrom <= siste dag i mnd OG (EmployedTo IS NULL ELLER EmployedTo >= første dag i mnd)).
 5. **Admin-tilgang:** Kun IsAdmin=true ser Admin-fanen.
 6. **E-postvalidering:** Kun @proventus.no-adresser ved innlogging og konsulentopprettelse.
+7. **Månedslås:** Konsulenter kan markere en måned som "ferdig". Låste måneder er skrivebeskyttet — API avviser alle skriveoperasjoner (upsert, delete, import) med 400. Låsen kan angres av konsulenten selv.
 
 ## Mønstre og konvensjoner
 

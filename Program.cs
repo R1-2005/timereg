@@ -19,6 +19,7 @@ builder.Services.AddScoped<JiraProjectRepository>();
 builder.Services.AddScoped<TimeEntryRepository>();
 builder.Services.AddScoped<ReportRepository>();
 builder.Services.AddScoped<SectionRepository>();
+builder.Services.AddScoped<MonthlyLockRepository>();
 
 var app = builder.Build();
 
@@ -206,14 +207,48 @@ jiraProjects.MapPost("/import", async (JiraProjectImportDto importData, JiraProj
     return Results.Ok(new { imported, updated, errors });
 });
 
+// Monthly Locks
+var monthlyLocks = api.MapGroup("/monthly-locks");
+
+monthlyLocks.MapGet("/", async (int consultantId, int year, int month, MonthlyLockRepository repo) =>
+{
+    var lockEntry = await repo.GetAsync(consultantId, year, month);
+    return Results.Ok(new { isLocked = lockEntry is not null, lockedAt = lockEntry?.LockedAt });
+});
+
+monthlyLocks.MapPut("/", async (MonthlyLockToggleDto dto, MonthlyLockRepository repo) =>
+{
+    if (dto.Locked)
+    {
+        var existing = await repo.GetAsync(dto.ConsultantId, dto.Year, dto.Month);
+        if (existing is not null)
+            return Results.Ok(new { isLocked = true, lockedAt = existing.LockedAt });
+
+        var lockEntry = await repo.LockAsync(dto.ConsultantId, dto.Year, dto.Month);
+        return Results.Ok(new { isLocked = true, lockedAt = lockEntry.LockedAt });
+    }
+    else
+    {
+        await repo.UnlockAsync(dto.ConsultantId, dto.Year, dto.Month);
+        return Results.Ok(new { isLocked = false, lockedAt = (string?)null });
+    }
+});
+
+monthlyLocks.MapGet("/by-month", async (int year, int month, MonthlyLockRepository repo) =>
+    Results.Ok(await repo.GetByMonthAsync(year, month)));
+
 // Time Entries
 var timeEntries = api.MapGroup("/time-entries");
 
 timeEntries.MapGet("/", async (int consultantId, int year, int month, TimeEntryRepository repo) =>
     Results.Ok(await repo.GetByConsultantAndMonthAsync(consultantId, year, month)));
 
-timeEntries.MapPut("/", async (TimeEntryUpsertDto dto, TimeEntryRepository timeRepo, JiraProjectRepository jiraRepo) =>
+timeEntries.MapPut("/", async (TimeEntryUpsertDto dto, TimeEntryRepository timeRepo, JiraProjectRepository jiraRepo, MonthlyLockRepository lockRepo) =>
 {
+    // Check if month is locked
+    if (await lockRepo.IsLockedAsync(dto.ConsultantId, dto.Date.Year, dto.Date.Month))
+        return Results.BadRequest(new { error = "Måneden er markert som ferdig. Angre ferdig-markeringen for å gjøre endringer." });
+
     // Extract project key from issue key (e.g., "AFP" from "AFP-123")
     var dashIndex = dto.JiraIssueKey.LastIndexOf('-');
     if (dashIndex <= 0)
@@ -238,14 +273,24 @@ timeEntries.MapPut("/", async (TimeEntryUpsertDto dto, TimeEntryRepository timeR
     return Results.Ok(result);
 });
 
-timeEntries.MapDelete("/{id:int}", async (int id, TimeEntryRepository repo) =>
+timeEntries.MapDelete("/{id:int}", async (int id, TimeEntryRepository repo, MonthlyLockRepository lockRepo) =>
 {
-    var deleted = await repo.DeleteAsync(id);
-    return deleted ? Results.NoContent() : Results.NotFound();
+    var entry = await repo.GetByIdAsync(id);
+    if (entry is null)
+        return Results.NotFound();
+
+    if (await lockRepo.IsLockedAsync(entry.ConsultantId, entry.Date.Year, entry.Date.Month))
+        return Results.BadRequest(new { error = "Måneden er markert som ferdig. Angre ferdig-markeringen for å gjøre endringer." });
+
+    await repo.DeleteAsync(id);
+    return Results.NoContent();
 });
 
-timeEntries.MapDelete("/by-issue", async (int consultantId, string jiraIssueKey, int year, int month, TimeEntryRepository repo) =>
+timeEntries.MapDelete("/by-issue", async (int consultantId, string jiraIssueKey, int year, int month, TimeEntryRepository repo, MonthlyLockRepository lockRepo) =>
 {
+    if (await lockRepo.IsLockedAsync(consultantId, year, month))
+        return Results.BadRequest(new { error = "Måneden er markert som ferdig. Angre ferdig-markeringen for å gjøre endringer." });
+
     var rowsDeleted = await repo.DeleteByConsultantAndIssueAsync(consultantId, jiraIssueKey, year, month);
     return Results.Ok(new { deleted = rowsDeleted });
 });
@@ -276,8 +321,11 @@ timeEntries.MapGet("/export", async (int consultantId, int year, int month, Time
     return Results.File(System.Text.Encoding.UTF8.GetBytes(json), "application/json", fileName);
 });
 
-timeEntries.MapPost("/import", async (TimeEntryImportDto importData, TimeEntryRepository timeRepo, JiraProjectRepository jiraRepo) =>
+timeEntries.MapPost("/import", async (TimeEntryImportDto importData, TimeEntryRepository timeRepo, JiraProjectRepository jiraRepo, MonthlyLockRepository lockRepo) =>
 {
+    if (await lockRepo.IsLockedAsync(importData.ConsultantId, importData.Year, importData.Month))
+        return Results.BadRequest(new { error = "Måneden er markert som ferdig. Angre ferdig-markeringen for å gjøre endringer." });
+
     // Delete existing entries for this consultant/month
     await timeRepo.DeleteByConsultantAndMonthAsync(importData.ConsultantId, importData.Year, importData.Month);
 
