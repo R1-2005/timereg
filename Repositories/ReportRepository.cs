@@ -34,6 +34,9 @@ public class ReportRepository
             INNER JOIN DistributionKeys dk ON dk.JiraProjectId = te.JiraProjectId
             INNER JOIN InvoiceProjects ip ON ip.Id = dk.InvoiceProjectId
             WHERE te.Date >= @StartDate AND te.Date <= @EndDate
+                AND c.EmployedFrom IS NOT NULL
+                AND c.EmployedFrom <= @EndDate
+                AND (c.EmployedTo IS NULL OR c.EmployedTo >= @StartDate)
             GROUP BY ip.Id, c.Id, te.JiraIssueKey
             HAVING SUM(te.Hours * dk.Percentage / 100.0) > 0
             ORDER BY ip.ProjectNumber, c.FirstName, c.LastName, te.JiraIssueKey

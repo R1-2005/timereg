@@ -27,6 +27,9 @@ Vue 3 lastes via CDN. Ingen npm, ingen Vite, ingen .vue-filer. Komponenter defin
 | FirstName | string | Fornavn |
 | LastName | string | Etternavn |
 | Email | string (unique) | E-postadresse |
+| IsAdmin | bool | Administrator-flagg (default false) |
+| EmployedFrom | string? | Ansattdato, alltid første dag i mnd (yyyy-MM-dd) |
+| EmployedTo | string? | Sluttdato, alltid siste dag i mnd (yyyy-MM-dd). null = fortsatt ansatt |
 
 ### 3.2 Fakturaprosjekt (`InvoiceProject`)
 | Felt | Type | Beskrivelse |
@@ -145,6 +148,7 @@ Enkel innlogging uten passord:
 - Konsulenten oppgir fornavn og e-postadresse
 - Valideres mot konsulentregisteret
 - Ingen sesjonshåndtering utover å huske valgt konsulent i nettleseren (localStorage)
+- Innlogget bruker får med IsAdmin-flagg som styrer synlighet av Admin-fanen
 
 ### 5.3 Timeregistrering — hovedvisning
 
@@ -195,10 +199,11 @@ Visning av faktureringsgrunnlag per måned:
 ### 5.5 Admin
 
 #### Konsulentadministrasjon
-- Liste over registrerte konsulenter
-- Legg til ny: fornavn, etternavn, e-postadresse
+- Liste over registrerte konsulenter (viser navn, e-post, ansattdato, sluttdato, admin-flagg)
+- Legg til ny: fornavn, etternavn, e-postadresse, ansatt fra (månedvelger), sluttet (månedvelger, valgfri), administrator (avkrysningsboks)
 - Rediger eksisterende
 - Slett (med advarsel om at timer også slettes, eller soft delete)
+- Kun synlig for brukere med IsAdmin = true
 
 #### Jira-prosjekter og fordelingsnøkler
 - Liste over Jira-prosjekter med tilhørende fordelingsnøkler
@@ -242,6 +247,8 @@ Visning av faktureringsgrunnlag per måned:
 3. **Fordelingsnøkler:** Prosenter per Jira-prosjekt må summere til nøyaktig 100%.
 4. **Unik registrering:** Én timeregistrering per konsulent per Jira-sak per dag.
 5. **Datoformat i frontend:** `dd.MM` i tabellhoder, `dd.MM.yyyy` der fullt årstall er relevant.
+6. **Ansettelsesperiode:** Hjem- og Rapport-visningene filtrerer konsulenter basert på ansettelsesperiode (EmployedFrom <= siste dag i måned OG (EmployedTo IS NULL ELLER EmployedTo >= første dag i måned)).
+7. **Admin-tilgang:** Kun brukere med IsAdmin = true ser Admin-fanen i navigasjonen.
 
 ## 8. Implementeringsfaser
 

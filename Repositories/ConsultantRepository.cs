@@ -39,8 +39,8 @@ public class ConsultantRepository
         using var connection = _connectionFactory.CreateConnection();
         var id = await connection.ExecuteScalarAsync<int>(
             """
-            INSERT INTO Consultants (FirstName, LastName, Email)
-            VALUES (@FirstName, @LastName, @Email);
+            INSERT INTO Consultants (FirstName, LastName, Email, IsAdmin, EmployedFrom, EmployedTo)
+            VALUES (@FirstName, @LastName, @Email, @IsAdmin, @EmployedFrom, @EmployedTo);
             SELECT last_insert_rowid()
             """, consultant);
         consultant.Id = id;
@@ -53,7 +53,8 @@ public class ConsultantRepository
         var rowsAffected = await connection.ExecuteAsync(
             """
             UPDATE Consultants
-            SET FirstName = @FirstName, LastName = @LastName, Email = @Email
+            SET FirstName = @FirstName, LastName = @LastName, Email = @Email,
+                IsAdmin = @IsAdmin, EmployedFrom = @EmployedFrom, EmployedTo = @EmployedTo
             WHERE Id = @Id
             """, consultant);
         return rowsAffected > 0 ? consultant : null;

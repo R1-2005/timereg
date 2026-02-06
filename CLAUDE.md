@@ -65,7 +65,8 @@ Ingen ekstern database. SQLite-filen lever i prosjektmappen. Skjemaendringer hå
 ├── Scripts/
 │   ├── 001_initial_schema.sql
 │   ├── 002_seed_data.sql
-│   └── 003_fix_distribution_keys.sql
+│   ├── 003_fix_distribution_keys.sql
+│   └── 004_add_admin_and_employment_dates.sql
 ├── wwwroot/
 │   ├── index.html
 │   ├── css/
@@ -106,14 +107,14 @@ Ved første kjøring skal databasen seedes med:
 Alle fire faser fra PRD er fullført.
 
 ### Navigasjon (etter innlogging)
-- **Hjem** — Oversikt over alle konsulenter med fakturert tid og utfyllingsgrad (fargekodert: rød/orange/grønn)
+- **Hjem** — Oversikt over konsulenter ansatt i valgt måned, med fakturert tid og utfyllingsgrad (fargekodert: rød/orange/grønn)
 - **Timeregistrering** — Registrer timer per Jira-sak i månedsrutenett med ukedager, helgmarkering (rød tekst), sletteknapp per rad, JSON eksport/import, og valgfri visning (hh:mm eller desimaltall)
-- **Rapport** — Faktureringsgrunnlag per fakturaprosjekt med Excel- og PDF-eksport
-- **Admin** — Administrer konsulenter og Jira-prosjekter med fordelingsnøkler
+- **Rapport** — Faktureringsgrunnlag per fakturaprosjekt med Excel- og PDF-eksport (filtrert på ansatte i valgt måned)
+- **Admin** — Administrer konsulenter (med admin-flagg og ansettelsesperiode) og Jira-prosjekter med fordelingsnøkler (viser fullt prosjektnavn, 2 per rad). Kun synlig for administratorer
 
 ### API-endepunkter
-- `POST /api/login` — Innlogging med fornavn og e-post
-- `GET/POST/PUT/DELETE /api/consultants` — Konsulent-CRUD
+- `POST /api/login` — Innlogging med fornavn og e-post (returnerer isAdmin-flagg)
+- `GET/POST/PUT/DELETE /api/consultants` — Konsulent-CRUD (inkluderer isAdmin, employedFrom, employedTo)
 - `GET /api/invoice-projects` — Liste fakturaprosjekter
 - `GET/POST/PUT/DELETE /api/jira-projects` — Jira-prosjekter med fordelingsnøkler
 - `GET/PUT/DELETE /api/time-entries` — Timeregistreringer
@@ -132,4 +133,5 @@ Alle fire faser fra PRD er fullført.
 - Fakturering skjer månedlig — alt dreier seg om månedsperioder
 - Fordelingsnøklene er kjernelogikken: timer på en Jira-sak fordeles prosentvis på fakturaprosjekter basert på Jira-prosjektets nøkkel
 - Enkel autentisering: fornavn + e-post, kun @proventus.no-adresser tillatt
-- Ingen rettighets- eller rollestyring
+- Admin-rolle: kun administratorer ser Admin-fanen. Styres via IsAdmin-flagg på konsulent
+- Ansettelsesperiode: konsulenter har EmployedFrom (første dag i mnd) og EmployedTo (siste dag i mnd, null = fortsatt ansatt). Hjem og Rapport filtrerer på ansatte i valgt måned

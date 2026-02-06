@@ -64,7 +64,7 @@ const App = {
                             Rapport
                         </a>
                     </li>
-                    <li>
+                    <li v-if="consultant.isAdmin">
                         <a href="#" :class="{ active: tab === 'admin' }" @click.prevent="tab = 'admin'">
                             Admin
                         </a>

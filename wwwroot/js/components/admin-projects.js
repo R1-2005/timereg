@@ -57,9 +57,9 @@ export default {
 
                     <div class="form-group">
                         <label>Fordelingsnøkler (må summere til 100%)</label>
-                        <div class="distribution-keys">
+                        <div class="distribution-keys" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                             <div v-for="ip in invoiceProjects" :key="ip.id" class="distribution-key-input">
-                                <label>{{ ip.projectNumber }}</label>
+                                <label>{{ ip.projectNumber }} {{ ip.name }}</label>
                                 <input
                                     type="number"
                                     min="0"
