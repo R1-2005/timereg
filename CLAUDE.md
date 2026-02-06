@@ -2,136 +2,205 @@
 
 ## Prosjektoversikt
 
-Internt timeregistreringssystem for konsulenter. Timer registreres per Jira-sak og fordeles automatisk på fakturaprosjekter via konfigurerbare fordelingsnøkler. Systemet genererer månedlige faktureringsgrunnlag.
+Internt timeregistreringssystem for konsulenter (~5 brukere). Timer registreres per Jira-sak og fordeles automatisk på fakturaprosjekter og seksjoner via konfigurerbare fordelingsnøkler. Systemet genererer månedlige faktureringsgrunnlag.
 
 ## Teknologistakk
 
-- **Backend:** .NET 10 (C#), minimal API
+- **Backend:** .NET 10 (C#), minimal API i `Program.cs`
 - **Frontend:** Vue 3 via CDN (ingen byggsteg, ingen npm/node)
 - **Database:** SQLite via Dapper
 - **Excel-eksport:** ClosedXML
 - **PDF-eksport:** QuestPDF
-- **Produksjon:** Kjører i IIS på Windows Server
+- **Produksjon:** IIS på Windows Server
 - **Utvikling:** Crostini Linux (Chromebook) og Windows
+
+## Kjøring
+
+```bash
+dotnet run          # Utvikling
+dotnet publish -c Release  # Produksjon
+```
 
 ## Viktige arkitekturbeslutninger
 
-### Frontend uten byggsteg
-Vue 3 lastes via CDN (`<script src="https://unpkg.com/vue@3">`). Ingen .vue-filer, ingen Vite, ingen npm. Alt frontend-kode lever som `.js`-filer i `wwwroot/` med Vue komponent-objekter. HTML-templates skrives inline i JavaScript eller i `<template>`-tagger i HTML.
-
-### Enkelt .NET-prosjekt
-Hele løsningen er ett .NET-prosjekt som serverer både API og statiske filer. Ingen separate frontend/backend-prosjekter.
-
-### SQLite som eneste datalager
-Ingen ekstern database. SQLite-filen lever i prosjektmappen. Skjemaendringer håndteres via SQL-skript i `Scripts/`-mappen.
+- **Frontend uten byggsteg:** Vue 3 lastes via CDN. Ingen .vue-filer, ingen Vite, ingen npm. Komponenter er JS-objekter med inline templates i `wwwroot/js/components/`.
+- **Enkelt .NET-prosjekt:** Serverer både API og statiske filer. Ingen separate prosjekter.
+- **SQLite som eneste datalager:** Filen `timeregistrering.db` lever i prosjektmappen. Skjemaendringer via nummererte SQL-skript i `Scripts/`.
+- **Automatisk migrering:** `DatabaseInitializer` kjører uappliserte skript ved oppstart, sporet i `__migrations`-tabellen.
 
 ## Utviklingsregler
 
 ### Git
-- Ikke kjør `git commit` eller `git push` automatisk
-- Vent til brukeren eksplisitt ber om det
+- Ikke kjør `git commit` eller `git push` automatisk — vent til brukeren ber om det
 
 ### Kodekonvensjoner
-- C#-kode følger standard .NET-konvensjoner
-- JavaScript bruker moderne ES6+ syntaks
-- Alle API-endepunkter returnerer JSON
-- Alle datoer i API-lag brukes som ISO 8601, konverteres i frontend til `dd.MM`/`dd.MM.yyyy`
-- Timer aksepteres som `h:mm` (f.eks. `1:30`), eller desimaltall med komma (`1,5`) eller punktum (`1.5`). Lagres alltid som desimaltall internt.
+- C#: standard .NET-konvensjoner
+- JavaScript: moderne ES6+ med Vue 3 Options API
+- API: alle endepunkter returnerer JSON
+- Datoer: ISO 8601 i API, `dd.MM`/`dd.MM.yyyy` i frontend
+- Timer: aksepteres som `h:mm`, desimal med komma (`1,5`) eller punktum (`1.5`). Lagres som desimaltall
 
-### Mappestruktur
-```
-/
-├── CLAUDE.md
-├── claude/
-│   └── PRD.md
-├── Program.cs
-├── appsettings.json
-├── Models/
-│   ├── Consultant.cs
-│   ├── DistributionKey.cs
-│   ├── Dtos.cs
-│   ├── InvoiceProject.cs
-│   ├── JiraProject.cs
-│   └── TimeEntry.cs
-├── Data/
-│   ├── DatabaseInitializer.cs
-│   └── DbConnectionFactory.cs
-├── Repositories/
-│   ├── ConsultantRepository.cs
-│   ├── InvoiceProjectRepository.cs
-│   ├── JiraProjectRepository.cs
-│   ├── ReportRepository.cs
-│   └── TimeEntryRepository.cs
-├── Scripts/
-│   ├── 001_initial_schema.sql
-│   ├── 002_seed_data.sql
-│   ├── 003_fix_distribution_keys.sql
-│   └── 004_add_admin_and_employment_dates.sql
-├── wwwroot/
-│   ├── index.html
-│   ├── css/
-│   │   └── app.css
-│   └── js/
-│       ├── app.js
-│       ├── components/
-│       │   ├── admin-consultants.js
-│       │   ├── admin-projects.js
-│       │   ├── home.js
-│       │   ├── login.js
-│       │   ├── month-picker.js
-│       │   ├── report-view.js
-│       │   └── time-grid.js
-│       └── services/
-│           └── api.js
-└── timeregistrering.db
-```
+## Databaseskjema
 
-### Kjøring
-```bash
-# Utvikling (Crostini/Windows)
-dotnet run
+### Consultants
+| Kolonne | Type | Constraint |
+|---------|------|------------|
+| Id | INTEGER | PK AUTOINCREMENT |
+| FirstName | TEXT NOT NULL | |
+| LastName | TEXT NOT NULL | |
+| Email | TEXT NOT NULL | UNIQUE |
+| IsAdmin | INTEGER NOT NULL | DEFAULT 0 |
+| EmployedFrom | TEXT | yyyy-MM-dd, alltid 1. i mnd |
+| EmployedTo | TEXT | yyyy-MM-dd, alltid siste i mnd. null = aktiv |
 
-# Produksjon (Windows/IIS)
-dotnet publish -c Release
-```
+### InvoiceProjects
+| Kolonne | Type | Constraint |
+|---------|------|------------|
+| Id | INTEGER | PK AUTOINCREMENT |
+| ProjectNumber | TEXT NOT NULL | UNIQUE |
+| Name | TEXT NOT NULL | |
 
-## Testdata og seed
+Seed: 10108 AFP Systemutvikling, 10607 Sliterordningen LO/YS, 10608 Sliterordningen Felles, 11003 OU Samordningen
 
-Ved første kjøring skal databasen seedes med:
-- De fire fakturaprosjektene (10108, 10607, 10608, 11003)
-- Alle Jira-prosjekter med fordelingsnøkler fra PRD
-- Ingen konsulenter (legges inn manuelt via admin)
+### JiraProjects
+| Kolonne | Type | Constraint |
+|---------|------|------------|
+| Id | INTEGER | PK AUTOINCREMENT |
+| Key | TEXT NOT NULL | UNIQUE (Jira-prefiks, f.eks. "AFP") |
+| Name | TEXT NOT NULL | |
 
-## Implementerte funksjoner
+### DistributionKeys
+| Kolonne | Type | Constraint |
+|---------|------|------------|
+| Id | INTEGER | PK AUTOINCREMENT |
+| JiraProjectId | INTEGER NOT NULL | FK → JiraProjects ON DELETE CASCADE |
+| InvoiceProjectId | INTEGER NOT NULL | FK → InvoiceProjects ON DELETE RESTRICT |
+| Percentage | REAL NOT NULL | |
 
-Alle fire faser fra PRD er fullført.
+UNIQUE(JiraProjectId, InvoiceProjectId). Sum per JiraProject skal alltid være 100%.
 
-### Navigasjon (etter innlogging)
-- **Hjem** — Oversikt over konsulenter ansatt i valgt måned, med fakturert tid og utfyllingsgrad (fargekodert: rød/orange/grønn)
-- **Timeregistrering** — Registrer timer per Jira-sak i månedsrutenett med ukedager, helgmarkering (rød tekst), sletteknapp per rad, JSON eksport/import, og valgfri visning (hh:mm eller desimaltall)
-- **Rapport** — Faktureringsgrunnlag per fakturaprosjekt med Excel- og PDF-eksport (filtrert på ansatte i valgt måned)
-- **Admin** — Administrer konsulenter (med admin-flagg og ansettelsesperiode) og Jira-prosjekter med fordelingsnøkler (viser fullt prosjektnavn, 2 per rad). Kun synlig for administratorer
+### Sections
+| Kolonne | Type | Constraint |
+|---------|------|------------|
+| Id | INTEGER | PK AUTOINCREMENT |
+| Name | TEXT NOT NULL | UNIQUE |
 
-### API-endepunkter
-- `POST /api/login` — Innlogging med fornavn og e-post (returnerer isAdmin-flagg)
-- `GET/POST/PUT/DELETE /api/consultants` — Konsulent-CRUD (inkluderer isAdmin, employedFrom, employedTo)
-- `GET /api/invoice-projects` — Liste fakturaprosjekter
-- `GET/POST/PUT/DELETE /api/jira-projects` — Jira-prosjekter med fordelingsnøkler
-- `GET/PUT/DELETE /api/time-entries` — Timeregistreringer
-- `DELETE /api/time-entries/by-issue` — Slett alle timer for en Jira-sak
-- `GET /api/time-entries/export` — Eksporter timer som JSON-fil
-- `POST /api/time-entries/import` — Importer timer fra JSON (overskriver eksisterende)
-- `GET /api/monthly-summary` — Sammendrag for hjem-siden
-- `GET /api/reports/monthly` — Faktureringsdata per prosjekt
-- `GET /api/reports/monthly/excel` — Excel-eksport per fakturaprosjekt
-- `GET /api/reports/monthly/pdf` — PDF-eksport per fakturaprosjekt
+Seed: "Seksjon teknologi", "Infrastruktur og plattform", "Personvernprogrammet"
+
+### SectionDistributionKeys
+| Kolonne | Type | Constraint |
+|---------|------|------------|
+| Id | INTEGER | PK AUTOINCREMENT |
+| JiraProjectId | INTEGER NOT NULL | FK → JiraProjects ON DELETE CASCADE |
+| SectionId | INTEGER NOT NULL | FK → Sections ON DELETE RESTRICT |
+| Percentage | REAL NOT NULL | |
+
+UNIQUE(JiraProjectId, SectionId). Sum per JiraProject skal alltid være 100%.
+
+### TimeEntries
+| Kolonne | Type | Constraint |
+|---------|------|------------|
+| Id | INTEGER | PK AUTOINCREMENT |
+| ConsultantId | INTEGER NOT NULL | FK → Consultants ON DELETE CASCADE |
+| JiraIssueKey | TEXT NOT NULL | Full saksnøkkel, f.eks. "AFP-123" |
+| JiraProjectId | INTEGER NOT NULL | FK → JiraProjects ON DELETE RESTRICT |
+| Date | TEXT NOT NULL | yyyy-MM-dd |
+| Hours | REAL NOT NULL | |
+
+UNIQUE(ConsultantId, JiraIssueKey, Date)
+
+## API-endepunkter
+
+### Innlogging
+- `POST /api/login` ← `{ firstName, email }` → `Consultant` eller 401. Kun @proventus.no tillatt.
+
+### Konsulenter
+- `GET /api/consultants` → `Consultant[]`
+- `GET /api/consultants/{id}` → `Consultant`
+- `POST /api/consultants` ← `Consultant` (validerer @proventus.no)
+- `PUT /api/consultants/{id}` ← `Consultant`
+- `DELETE /api/consultants/{id}`
+
+### Fakturaprosjekter
+- `GET /api/invoice-projects` → `InvoiceProject[]`
+
+### Seksjoner
+- `GET /api/sections` → `Section[]`
+
+### Jira-prosjekter
+- `GET /api/jira-projects` → `JiraProjectDto[]` (inkl. distributionKeys + sectionDistributionKeys)
+- `GET /api/jira-projects/{id}` → `JiraProjectDto`
+- `POST /api/jira-projects` ← `JiraProjectCreateDto` (validerer begge sum=100%)
+- `PUT /api/jira-projects/{id}` ← `JiraProjectCreateDto` (validerer begge sum=100%)
+- `DELETE /api/jira-projects/{id}`
+- `GET /api/jira-projects/export` → JSON-fil med alle prosjekter + fordelingsnøkler
+- `POST /api/jira-projects/import` ← `{ projects: JiraProjectCreateDto[] }` → `{ imported, updated, errors }`. Matcher på Key: oppdaterer eksisterende, oppretter nye.
+
+### Timeregistreringer
+- `GET /api/time-entries?consultantId&year&month` → `TimeEntry[]`
+- `PUT /api/time-entries` ← `TimeEntryUpsertDto` — upsert basert på (consultantId, jiraIssueKey, date). Validerer at Jira-prosjektprefikset finnes.
+- `DELETE /api/time-entries/{id}`
+- `DELETE /api/time-entries/by-issue?consultantId&jiraIssueKey&year&month` — slett alle timer for en sak i en måned
+- `GET /api/time-entries/export?consultantId&year&month` → JSON-fil
+- `POST /api/time-entries/import` ← `TimeEntryImportDto` — sletter eksisterende for måneden, importerer nye
+
+### Oversikt og rapporter
+- `GET /api/monthly-summary?year&month` → sammendrag per konsulent for hjem-siden
+- `GET /api/reports/monthly?year&month` → faktureringsdata per prosjekt (filtrert på ansatte i perioden)
+- `GET /api/reports/monthly/excel?year&month&invoiceProjectId` → Excel-fil (ClosedXML)
+- `GET /api/reports/monthly/pdf?year&month&invoiceProjectId` → PDF-fil (QuestPDF)
+
+## Frontend-komponenter
+
+| Komponent | Fil | Beskrivelse | API-kall |
+|-----------|-----|-------------|----------|
+| Login | `login.js` | Innlogging med fornavn + e-post, lagrer bruker i localStorage | `POST /api/login` |
+| Home | `home.js` | Oversikt ansatte i valgt måned, fargekodert utfyllingsgrad | `GET monthly-summary`, `GET consultants` |
+| TimeGrid | `time-grid.js` | Månedsrutenett for timeregistrering med autolagring, helgmarkering, sletteknapp per rad, JSON eksport/import, valgfri visning (hh:mm/desimal) | `GET/PUT/DELETE time-entries` |
+| ReportView | `report-view.js` | Faktureringsgrunnlag per fakturaprosjekt med Excel/PDF-eksport | `GET reports/monthly` |
+| AdminConsultants | `admin-consultants.js` | CRUD konsulenter med admin-flagg og ansettelsesperiode | `GET/POST/PUT/DELETE consultants` |
+| AdminProjects | `admin-projects.js` | CRUD Jira-prosjekter med fordelingsnøkler og seksjonsfordeling, JSON eksport/import | `GET/POST/PUT/DELETE jira-projects`, `GET sections`, `GET invoice-projects` |
+| MonthPicker | `month-picker.js` | Gjenbrukbar månedsvelger med forrige/neste-navigasjon | (ingen) |
+
+App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synlig for IsAdmin-brukere.
+
+## Forretningsregler
+
+1. **Fordelingsnøkler er kjernelogikken:** Timer på en Jira-sak fordeles prosentvis på fakturaprosjekter basert på Jira-prosjektets nøkkel. Begge fordelinger (fakturaprosjekt + seksjon) må summere til 100%.
+2. **Jira-saksnøkkel:** Format `PREFIKS-nummer`. Prefikset må finnes i JiraProjects.
+3. **Unik registrering:** Én timeregistrering per konsulent per Jira-sak per dag.
+4. **Ansettelsesfiltrering:** Hjem og Rapport filtrerer på konsulenter ansatt i valgt måned (EmployedFrom <= siste dag i mnd OG (EmployedTo IS NULL ELLER EmployedTo >= første dag i mnd)).
+5. **Admin-tilgang:** Kun IsAdmin=true ser Admin-fanen.
+6. **E-postvalidering:** Kun @proventus.no-adresser ved innlogging og konsulentopprettelse.
+
+## Mønstre og konvensjoner
+
+### Ny databasetabell
+1. Opprett migreringsscript `Scripts/NNN_beskrivelse.sql` (neste ledige nummer)
+2. Opprett modell i `Models/`
+3. Opprett repository i `Repositories/`
+4. Registrer repository i `Program.cs` med `builder.Services.AddScoped<>()`
+5. Migrering kjøres automatisk ved oppstart via `DatabaseInitializer`
+
+### Ny fordelingsnøkkel-type
+Følg mønsteret fra DistributionKeys / SectionDistributionKeys:
+- Egen tabell med FK til JiraProjects (CASCADE) og oppslagstabell (RESTRICT), UNIQUE constraint
+- DTO i `Models/Dtos.cs`, leses/skrives i `JiraProjectRepository` innenfor samme transaksjon
+- Sum-validering (=100%) i POST/PUT-endepunktene i `Program.cs`
+- Frontend: prosentinputs i `admin-projects.js` modal, badges i tabell
+
+### Repository-mønster
+- Constructor tar `DbConnectionFactory`, bruker `using var connection = _connectionFactory.CreateConnection()`
+- Skrive-operasjoner med flere tabeller bruker transaksjon (`connection.BeginTransaction()`)
+- Returnerer DTO-er (ikke entiteter) fra lese-metoder som trenger joins
+
+### Frontend-komponent
+- ES6-modul som eksporterer Vue Options API-objekt med `template` som inline string
+- Importerer `api` fra `../services/api.js`
+- Data hentes i `mounted()` via `this.load()`
 
 ## Viktig kontekst
 
-- Les `./claude/PRD.md` for full kravspesifikasjon
-- Systemet brukes av ~5 konsulenter
+- Les `./claude/PRD.md` for opprinnelig kravspesifikasjon og komplett Jira-prosjektliste med fordelingsmønstre
 - Fakturering skjer månedlig — alt dreier seg om månedsperioder
-- Fordelingsnøklene er kjernelogikken: timer på en Jira-sak fordeles prosentvis på fakturaprosjekter basert på Jira-prosjektets nøkkel
-- Enkel autentisering: fornavn + e-post, kun @proventus.no-adresser tillatt
-- Admin-rolle: kun administratorer ser Admin-fanen. Styres via IsAdmin-flagg på konsulent
-- Ansettelsesperiode: konsulenter har EmployedFrom (første dag i mnd) og EmployedTo (siste dag i mnd, null = fortsatt ansatt). Hjem og Rapport filtrerer på ansatte i valgt måned
+- Systemet brukes av ~5 konsulenter

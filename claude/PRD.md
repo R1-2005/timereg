@@ -1,3 +1,5 @@
+> **Merk:** Dette er den opprinnelige kravspesifikasjonen. For nåværende funksjonalitet og teknisk oversikt, se `CLAUDE.md`.
+
 # PRD — Timeregistreringssystem
 
 ## 1. Sammendrag
