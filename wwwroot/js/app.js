@@ -33,8 +33,8 @@ const App = {
                 </ul>
             </nav>
             <div class="container">
-                <div class="card" style="background: #fffbeb; border-color: #fde68a;">
-                    <p style="margin: 0; color: #92400e;">
+                <div class="card" style="background: var(--color-warning-bg); border-color: var(--color-warning-border);">
+                    <p style="margin: 0; color: var(--color-warning-text);">
                         <strong>Velkommen!</strong> Ingen konsulenter er registrert ennå. Legg til minst én konsulent for å komme i gang.
                     </p>
                 </div>
@@ -72,6 +72,9 @@ const App = {
                 </ul>
                 <div class="nav-right">
                     <span>{{ consultant.firstName }} {{ consultant.lastName }}</span>
+                    <button @click="toggleTheme" class="theme-toggle" :title="darkMode ? 'Bytt til lyst tema' : 'Bytt til mørkt tema'">
+                        {{ darkMode ? '\u2600\uFE0F' : '\uD83C\uDF19' }}
+                    </button>
                     <button @click="logout">Logg ut</button>
                 </div>
             </nav>
@@ -136,6 +139,17 @@ const App = {
         const noConsultants = ref(false);
         const consultant = ref(null);
         const tab = ref('hjem');
+        const darkMode = ref(localStorage.getItem('theme') === 'dark');
+
+        const applyTheme = () => {
+            document.documentElement.dataset.theme = darkMode.value ? 'dark' : 'light';
+        };
+
+        const toggleTheme = () => {
+            darkMode.value = !darkMode.value;
+            localStorage.setItem('theme', darkMode.value ? 'dark' : 'light');
+            applyTheme();
+        };
 
         const now = new Date();
         const selectedYear = ref(now.getFullYear());
@@ -180,6 +194,7 @@ const App = {
         };
 
         onMounted(async () => {
+            applyTheme();
             await checkConsultants();
 
             if (!noConsultants.value) {
@@ -262,6 +277,8 @@ const App = {
             noConsultants,
             consultant,
             tab,
+            darkMode,
+            toggleTheme,
             selectedYear,
             selectedMonth,
             displayMode,

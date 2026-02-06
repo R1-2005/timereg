@@ -78,7 +78,7 @@ export default {
                         <!-- Invoice project distribution rows -->
                         <tr v-for="ip in invoiceProjects" :key="ip.id" class="distribution-row">
                             <td class="issue-col">
-                                <span class="invoice-project">{{ ip.projectNumber }} {{ ip.name }}</span>
+                                <span class="invoice-project">{{ ip.shortName || (ip.projectNumber + ' ' + ip.name) }}</span>
                             </td>
                             <td v-for="day in daysInMonth" :key="day" class="day-col" :class="{ weekend: isWeekend(day) }">
                                 {{ formatDistribution(getInvoiceProjectDaySum(ip.id, day)) }}

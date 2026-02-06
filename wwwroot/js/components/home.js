@@ -16,7 +16,7 @@ export default {
             <div v-if="loading" class="loading">Laster...</div>
             <div v-else-if="error" class="error">{{ error }}</div>
             <div v-else-if="consultants.length === 0" class="card">
-                <p style="color: #666;">Ingen konsulenter registrert.</p>
+                <p class="no-data">Ingen konsulenter registrert.</p>
             </div>
             <div v-else class="card">
                 <h2>Fakturering {{ monthName }} {{ year }}</h2>
@@ -28,7 +28,7 @@ export default {
                             <th class="text-right">Utfylt</th>
                             <th class="text-right">Timer totalt</th>
                             <th v-for="ip in invoiceProjects" :key="ip.id" class="text-right">
-                                {{ ip.projectNumber }}
+                                {{ ip.shortName || (ip.projectNumber + ' ' + ip.name) }}
                             </th>
                         </tr>
                     </thead>

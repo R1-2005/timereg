@@ -59,8 +59,9 @@ dotnet publish -c Release  # Produksjon
 | Id | INTEGER | PK AUTOINCREMENT |
 | ProjectNumber | TEXT NOT NULL | UNIQUE |
 | Name | TEXT NOT NULL | |
+| ShortName | TEXT | Kort visningsnavn for tabelloversk. etc. |
 
-Seed: 10108 AFP Systemutvikling, 10607 Sliterordningen LO/YS, 10608 Sliterordningen Felles, 11003 OU Samordningen
+Seed: 10108 AFP Systemutvikling (ShortName: "10108 AFP"), 10607 Sliterordningen LO/YS ("10607 SO LO/YS"), 10608 Sliterordningen Felles ("10608 SO Felles"), 11003 OU Samordningen ("11003 OUS")
 
 ### JiraProjects
 | Kolonne | Type | Constraint |
@@ -178,7 +179,7 @@ UNIQUE(ConsultantId, Year, Month). Når en rad finnes er måneden markert som fe
 | AdminProjects | `admin-projects.js` | CRUD Jira-prosjekter med fordelingsnøkler og seksjonsfordeling, JSON eksport/import | `GET/POST/PUT/DELETE jira-projects`, `GET sections`, `GET invoice-projects` |
 | MonthPicker | `month-picker.js` | Gjenbrukbar månedsvelger med forrige/neste-navigasjon | (ingen) |
 
-App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synlig for IsAdmin-brukere. Håndterer månedslås-tilstand og "Marker som ferdig"-knapp i timeregistreringsfanen.
+App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synlig for IsAdmin-brukere. Håndterer månedslås-tilstand og "Marker som ferdig"-knapp i timeregistreringsfanen. Inkluderer dark/light theme toggle (localStorage-persistert).
 
 ## Forretningsregler
 

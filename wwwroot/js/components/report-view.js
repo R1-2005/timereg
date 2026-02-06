@@ -16,7 +16,7 @@ export default {
             <div v-if="loading" class="loading">Laster...</div>
             <div v-else-if="error" class="error">{{ error }}</div>
             <div v-else-if="reportData.length === 0" class="card">
-                <p style="color: #666;">Ingen timer registrert for denne perioden.</p>
+                <p class="no-data">Ingen timer registrert for denne perioden.</p>
             </div>
             <div v-else>
                 <div v-for="ip in invoiceProjects" :key="ip.id" class="card report-card">

@@ -41,7 +41,7 @@ export default {
                         </td>
                     </tr>
                     <tr v-if="consultants.length === 0">
-                        <td colspan="7" style="text-align: center; color: #666;">
+                        <td colspan="7" style="text-align: center;" class="no-data">
                             Ingen konsulenter registrert
                         </td>
                     </tr>
