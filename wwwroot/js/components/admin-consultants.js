@@ -24,6 +24,7 @@ export default {
                         <th>Sluttet</th>
                         <th>Admin</th>
                         <th>Timer</th>
+                        <th>Aktiv</th>
                         <th style="width: 120px;">Handlinger</th>
                     </tr>
                 </thead>
@@ -33,15 +34,16 @@ export default {
                         <td>{{ c.email }}</td>
                         <td>{{ formatMonth(c.employedFrom) }}</td>
                         <td>{{ formatMonth(c.employedTo) }}</td>
-                        <td>{{ c.isAdmin ? 'Ja' : 'Nei' }}</td>
-                        <td>{{ c.canRegisterHours ? 'Ja' : 'Nei' }}</td>
+                        <td><span class="status-badge" :class="c.isAdmin ? 'status-yes' : 'status-no'">{{ c.isAdmin ? 'Ja' : 'Nei' }}</span></td>
+                        <td><span class="status-badge" :class="c.canRegisterHours ? 'status-yes' : 'status-no'">{{ c.canRegisterHours ? 'Ja' : 'Nei' }}</span></td>
+                        <td><span class="status-badge" :class="c.isActive ? 'status-yes' : 'status-no'">{{ c.isActive ? 'Ja' : 'Nei' }}</span></td>
                         <td class="actions">
                             <button class="btn btn-sm btn-secondary" @click="openModal(c)">Rediger</button>
                             <button class="btn btn-sm btn-danger" @click="remove(c)">Slett</button>
                         </td>
                     </tr>
                     <tr v-if="consultants.length === 0">
-                        <td colspan="7" style="text-align: center;" class="no-data">
+                        <td colspan="8" style="text-align: center;" class="no-data">
                             Ingen konsulenter registrert
                         </td>
                     </tr>
@@ -92,6 +94,12 @@ export default {
                                 Timeføring
                             </label>
                         </div>
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" v-model="form.isActive">
+                                Aktiv
+                            </label>
+                        </div>
                     </div>
 
                     <div class="modal-actions">
@@ -107,7 +115,7 @@ export default {
     data() {
         return {
             consultants: [],
-            form: { firstName: '', lastName: '', email: '', isAdmin: false, canRegisterHours: true, employedFromMonth: '', employedToMonth: '' },
+            form: { firstName: '', lastName: '', email: '', isAdmin: false, canRegisterHours: true, isActive: true, employedFromMonth: '', employedToMonth: '' },
             showModal: false,
             editing: null,
             error: null,
@@ -136,11 +144,12 @@ export default {
                     email: consultant.email,
                     isAdmin: consultant.isAdmin,
                     canRegisterHours: consultant.canRegisterHours,
+                    isActive: consultant.isActive,
                     employedFromMonth: this.dateToMonth(consultant.employedFrom),
                     employedToMonth: this.dateToMonth(consultant.employedTo)
                 };
             } else {
-                this.form = { firstName: '', lastName: '', email: '', isAdmin: false, canRegisterHours: true, employedFromMonth: '', employedToMonth: '' };
+                this.form = { firstName: '', lastName: '', email: '', isAdmin: false, canRegisterHours: true, isActive: true, employedFromMonth: '', employedToMonth: '' };
             }
 
             this.showModal = true;
@@ -164,6 +173,7 @@ export default {
                 email: this.form.email,
                 isAdmin: this.form.isAdmin,
                 canRegisterHours: this.form.canRegisterHours,
+                isActive: this.form.isActive,
                 employedFrom: this.monthToFirstDay(this.form.employedFromMonth),
                 employedTo: this.monthToLastDay(this.form.employedToMonth)
             };

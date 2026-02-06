@@ -8,6 +8,7 @@ public class Consultant
     public required string Email { get; set; }
     public bool IsAdmin { get; set; }
     public bool CanRegisterHours { get; set; }
+    public bool IsActive { get; set; } = true;
     public string? EmployedFrom { get; set; }
     public string? EmployedTo { get; set; }
 }

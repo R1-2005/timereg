@@ -44,7 +44,11 @@ api.MapPost("/login", async (LoginRequest request, ConsultantRepository repo) =>
         return Results.BadRequest(new { error = "Kun @proventus.no e-postadresser er tillatt." });
 
     var consultant = await repo.GetByFirstNameAndEmailAsync(request.FirstName, request.Email);
-    return consultant is not null ? Results.Ok(consultant) : Results.Unauthorized();
+    if (consultant is null)
+        return Results.Unauthorized();
+    if (!consultant.IsActive)
+        return Results.BadRequest(new { error = "Brukeren er deaktivert. Kontakt administrator." });
+    return Results.Ok(consultant);
 });
 
 // Consultants
