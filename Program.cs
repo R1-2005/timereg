@@ -18,6 +18,7 @@ builder.Services.AddScoped<InvoiceProjectRepository>();
 builder.Services.AddScoped<JiraProjectRepository>();
 builder.Services.AddScoped<TimeEntryRepository>();
 builder.Services.AddScoped<ReportRepository>();
+builder.Services.AddScoped<SectionRepository>();
 
 var app = builder.Build();
 
@@ -86,6 +87,10 @@ consultants.MapDelete("/{id:int}", async (int id, ConsultantRepository repo) =>
 api.MapGet("/invoice-projects", async (InvoiceProjectRepository repo) =>
     Results.Ok(await repo.GetAllAsync()));
 
+// Sections
+api.MapGet("/sections", async (SectionRepository repo) =>
+    Results.Ok(await repo.GetAllAsync()));
+
 // Jira Projects
 var jiraProjects = api.MapGroup("/jira-projects");
 
@@ -104,6 +109,10 @@ jiraProjects.MapPost("/", async (JiraProjectCreateDto dto, JiraProjectRepository
     if (sum != 100)
         return Results.BadRequest(new { error = $"Distribution key percentages must sum to 100, got {sum}" });
 
+    var sectionSum = dto.SectionDistributionKeys.Sum(sdk => sdk.Percentage);
+    if (sectionSum != 100)
+        return Results.BadRequest(new { error = $"Section distribution key percentages must sum to 100, got {sectionSum}" });
+
     var created = await repo.CreateAsync(dto);
     return Results.Created($"/api/jira-projects/{created.Id}", created);
 });
@@ -114,6 +123,10 @@ jiraProjects.MapPut("/{id:int}", async (int id, JiraProjectCreateDto dto, JiraPr
     if (sum != 100)
         return Results.BadRequest(new { error = $"Distribution key percentages must sum to 100, got {sum}" });
 
+    var sectionSum = dto.SectionDistributionKeys.Sum(sdk => sdk.Percentage);
+    if (sectionSum != 100)
+        return Results.BadRequest(new { error = $"Section distribution key percentages must sum to 100, got {sectionSum}" });
+
     var updated = await repo.UpdateAsync(id, dto);
     return updated is not null ? Results.Ok(updated) : Results.NotFound();
 });
@@ -122,6 +135,75 @@ jiraProjects.MapDelete("/{id:int}", async (int id, JiraProjectRepository repo) =
 {
     var deleted = await repo.DeleteAsync(id);
     return deleted ? Results.NoContent() : Results.NotFound();
+});
+
+jiraProjects.MapGet("/export", async (JiraProjectRepository repo) =>
+{
+    var projects = await repo.GetAllWithDistributionKeysAsync();
+    var exportData = new
+    {
+        exportedAt = DateTime.UtcNow,
+        projects = projects.Select(p => new
+        {
+            p.Key,
+            p.Name,
+            distributionKeys = p.DistributionKeys.Select(dk => new { dk.InvoiceProjectId, dk.Percentage }),
+            sectionDistributionKeys = p.SectionDistributionKeys.Select(sdk => new { sdk.SectionId, sdk.Percentage })
+        })
+    };
+
+    var json = System.Text.Json.JsonSerializer.Serialize(exportData, new System.Text.Json.JsonSerializerOptions
+    {
+        WriteIndented = true
+    });
+
+    return Results.File(System.Text.Encoding.UTF8.GetBytes(json), "application/json", "JiraProsjekter.json");
+});
+
+jiraProjects.MapPost("/import", async (JiraProjectImportDto importData, JiraProjectRepository repo) =>
+{
+    var imported = 0;
+    var updated = 0;
+    var errors = new List<string>();
+
+    foreach (var project in importData.Projects)
+    {
+        var sum = project.DistributionKeys.Sum(dk => dk.Percentage);
+        if (sum != 100)
+        {
+            errors.Add($"{project.Key}: Fordelingsnøkler summerer til {sum}, ikke 100");
+            continue;
+        }
+
+        var sectionSum = project.SectionDistributionKeys.Sum(sdk => sdk.Percentage);
+        if (sectionSum != 100)
+        {
+            errors.Add($"{project.Key}: Seksjonsfordeling summerer til {sectionSum}, ikke 100");
+            continue;
+        }
+
+        var dto = new JiraProjectCreateDto
+        {
+            Key = project.Key,
+            Name = project.Name,
+            DistributionKeys = project.DistributionKeys,
+            SectionDistributionKeys = project.SectionDistributionKeys
+        };
+
+        var existing = await repo.GetByKeyAsync(project.Key);
+        if (existing != null)
+        {
+            await repo.UpdateAsync(existing.Id, dto);
+            updated++;
+        }
+        else
+        {
+            await repo.CreateAsync(dto);
+            imported++;
+        }
+    }
+
+    return Results.Ok(new { imported, updated, errors });
 });
 
 // Time Entries

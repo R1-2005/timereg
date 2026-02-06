@@ -12,12 +12,19 @@ public class DistributionKeyDto
     public decimal Percentage { get; set; }
 }
 
+public class SectionDistributionKeyDto
+{
+    public int SectionId { get; set; }
+    public decimal Percentage { get; set; }
+}
+
 public class JiraProjectDto
 {
     public int Id { get; set; }
     public required string Key { get; set; }
     public required string Name { get; set; }
     public required List<DistributionKeyDto> DistributionKeys { get; set; }
+    public required List<SectionDistributionKeyDto> SectionDistributionKeys { get; set; }
 }
 
 public class JiraProjectCreateDto
@@ -25,6 +32,12 @@ public class JiraProjectCreateDto
     public required string Key { get; set; }
     public required string Name { get; set; }
     public required List<DistributionKeyDto> DistributionKeys { get; set; }
+    public required List<SectionDistributionKeyDto> SectionDistributionKeys { get; set; }
+}
+
+public class JiraProjectImportDto
+{
+    public required List<JiraProjectCreateDto> Projects { get; set; }
 }
 
 public class TimeEntryUpsertDto

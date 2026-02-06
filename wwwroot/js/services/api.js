@@ -49,11 +49,16 @@ const api = {
     // Invoice Projects
     getInvoiceProjects: () => api.get('/api/invoice-projects'),
 
+    // Sections
+    getSections: () => api.get('/api/sections'),
+
     // Jira Projects
     getJiraProjects: () => api.get('/api/jira-projects'),
     createJiraProject: (data) => api.post('/api/jira-projects', data),
     updateJiraProject: (id, data) => api.put(`/api/jira-projects/${id}`, data),
     deleteJiraProject: (id) => api.delete(`/api/jira-projects/${id}`),
+    exportJiraProjectsUrl: () => '/api/jira-projects/export',
+    importJiraProjects: (data) => api.post('/api/jira-projects/import', data),
 
     // Time Entries
     getTimeEntries: (consultantId, year, month) =>

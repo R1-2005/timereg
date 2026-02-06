@@ -23,6 +23,9 @@ public class JiraProjectRepository
         var distributionKeys = (await connection.QueryAsync<DistributionKey>(
             "SELECT * FROM DistributionKeys")).ToList();
 
+        var sectionDistributionKeys = (await connection.QueryAsync<SectionDistributionKey>(
+            "SELECT * FROM SectionDistributionKeys")).ToList();
+
         return jiraProjects.Select(jp => new JiraProjectDto
         {
             Id = jp.Id,
@@ -34,6 +37,14 @@ public class JiraProjectRepository
                 {
                     InvoiceProjectId = dk.InvoiceProjectId,
                     Percentage = dk.Percentage
+                })
+                .ToList(),
+            SectionDistributionKeys = sectionDistributionKeys
+                .Where(sdk => sdk.JiraProjectId == jp.Id)
+                .Select(sdk => new SectionDistributionKeyDto
+                {
+                    SectionId = sdk.SectionId,
+                    Percentage = sdk.Percentage
                 })
                 .ToList()
         });
@@ -53,6 +64,10 @@ public class JiraProjectRepository
             "SELECT * FROM DistributionKeys WHERE JiraProjectId = @JiraProjectId",
             new { JiraProjectId = id });
 
+        var sectionDistributionKeys = await connection.QueryAsync<SectionDistributionKey>(
+            "SELECT * FROM SectionDistributionKeys WHERE JiraProjectId = @JiraProjectId",
+            new { JiraProjectId = id });
+
         return new JiraProjectDto
         {
             Id = jiraProject.Id,
@@ -63,6 +78,13 @@ public class JiraProjectRepository
                 {
                     InvoiceProjectId = dk.InvoiceProjectId,
                     Percentage = dk.Percentage
+                })
+                .ToList(),
+            SectionDistributionKeys = sectionDistributionKeys
+                .Select(sdk => new SectionDistributionKeyDto
+                {
+                    SectionId = sdk.SectionId,
+                    Percentage = sdk.Percentage
                 })
                 .ToList()
         };
@@ -99,6 +121,15 @@ public class JiraProjectRepository
                     """, new { JiraProjectId = id, dk.InvoiceProjectId, dk.Percentage }, transaction);
             }
 
+            foreach (var sdk in dto.SectionDistributionKeys)
+            {
+                await connection.ExecuteAsync(
+                    """
+                    INSERT INTO SectionDistributionKeys (JiraProjectId, SectionId, Percentage)
+                    VALUES (@JiraProjectId, @SectionId, @Percentage)
+                    """, new { JiraProjectId = id, sdk.SectionId, sdk.Percentage }, transaction);
+            }
+
             transaction.Commit();
 
             return new JiraProjectDto
@@ -106,7 +137,8 @@ public class JiraProjectRepository
                 Id = id,
                 Key = dto.Key,
                 Name = dto.Name,
-                DistributionKeys = dto.DistributionKeys
+                DistributionKeys = dto.DistributionKeys,
+                SectionDistributionKeys = dto.SectionDistributionKeys
             };
         }
         catch
@@ -150,6 +182,19 @@ public class JiraProjectRepository
                     """, new { JiraProjectId = id, dk.InvoiceProjectId, dk.Percentage }, transaction);
             }
 
+            await connection.ExecuteAsync(
+                "DELETE FROM SectionDistributionKeys WHERE JiraProjectId = @JiraProjectId",
+                new { JiraProjectId = id }, transaction);
+
+            foreach (var sdk in dto.SectionDistributionKeys)
+            {
+                await connection.ExecuteAsync(
+                    """
+                    INSERT INTO SectionDistributionKeys (JiraProjectId, SectionId, Percentage)
+                    VALUES (@JiraProjectId, @SectionId, @Percentage)
+                    """, new { JiraProjectId = id, sdk.SectionId, sdk.Percentage }, transaction);
+            }
+
             transaction.Commit();
 
             return new JiraProjectDto
@@ -157,7 +202,8 @@ public class JiraProjectRepository
                 Id = id,
                 Key = dto.Key,
                 Name = dto.Name,
-                DistributionKeys = dto.DistributionKeys
+                DistributionKeys = dto.DistributionKeys,
+                SectionDistributionKeys = dto.SectionDistributionKeys
             };
         }
         catch
