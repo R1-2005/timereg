@@ -395,8 +395,8 @@ tfoot .sum-row td {
 
 /* Distribution keys in admin */
 .distribution-keys {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
     margin-top: 8px;
 }
@@ -411,19 +411,19 @@ tfoot .sum-row td {
     font-size: 13px;
 }
 
-.distribution-key-input input {
-    width: 60px;
-    padding: 6px 8px;
+.distribution-key-input label {
+    flex: 1;
+    font-weight: 500;
+}
+
+.form-group .distribution-key-input input {
+    width: 48px;
+    padding: 4px 4px;
     text-align: right;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     background: var(--color-surface);
     color: var(--color-text);
-}
-
-.distribution-key-input label {
-    min-width: 50px;
-    font-weight: 500;
 }
 
 /* Messages */

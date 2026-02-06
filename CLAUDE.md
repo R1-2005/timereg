@@ -85,8 +85,9 @@ UNIQUE(JiraProjectId, InvoiceProjectId). Sum per JiraProject skal alltid være 1
 |---------|------|------------|
 | Id | INTEGER | PK AUTOINCREMENT |
 | Name | TEXT NOT NULL | UNIQUE |
+| ShortName | TEXT | Kort visningsnavn |
 
-Seed: "Seksjon teknologi", "Infrastruktur og plattform", "Personvernprogrammet"
+Seed: "Seksjon teknologi" (ShortName: "Teknologi"), "Infrastruktur og plattform" ("Infrastruktur"), "Personvernprogrammet" ("Personvern")
 
 ### SectionDistributionKeys
 | Kolonne | Type | Constraint |
