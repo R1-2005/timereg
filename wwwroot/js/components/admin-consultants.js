@@ -33,7 +33,7 @@ export default {
                         <td>{{ c.email }}</td>
                         <td>{{ formatMonth(c.employedFrom) }}</td>
                         <td>{{ formatMonth(c.employedTo) }}</td>
-                        <td>{{ c.isAdmin ? 'Ja' : '' }}</td>
+                        <td>{{ c.isAdmin ? 'Ja' : 'Nei' }}</td>
                         <td>{{ c.canRegisterHours ? 'Ja' : 'Nei' }}</td>
                         <td class="actions">
                             <button class="btn btn-sm btn-secondary" @click="openModal(c)">Rediger</button>

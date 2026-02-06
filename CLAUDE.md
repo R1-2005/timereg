@@ -187,7 +187,7 @@ App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synl
 1. **Fordelingsnøkler er kjernelogikken:** Timer på en Jira-sak fordeles prosentvis på fakturaprosjekter basert på Jira-prosjektets nøkkel. Begge fordelinger (fakturaprosjekt + seksjon) må summere til 100%.
 2. **Jira-saksnøkkel:** Format `PREFIKS-nummer`. Prefikset må finnes i JiraProjects.
 3. **Unik registrering:** Én timeregistrering per konsulent per Jira-sak per dag.
-4. **Ansettelsesfiltrering:** Hjem og Rapport filtrerer på konsulenter ansatt i valgt måned (EmployedFrom <= siste dag i mnd OG (EmployedTo IS NULL ELLER EmployedTo >= første dag i mnd)).
+4. **Ansettelsesfiltrering:** Hjem og Rapport filtrerer på konsulenter ansatt i valgt måned (EmployedFrom <= siste dag i mnd OG (EmployedTo IS NULL ELLER EmployedTo >= første dag i mnd)). Hjem filtrerer i tillegg bort konsulenter med CanRegisterHours=false.
 5. **Admin-tilgang:** Kun IsAdmin=true ser Admin-fanen.
 6. **E-postvalidering:** Kun @proventus.no-adresser ved innlogging og konsulentopprettelse.
 7. **Månedslås:** Konsulenter kan markere en måned som "ferdig". Låste måneder er skrivebeskyttet — API avviser alle skriveoperasjoner (upsert, delete, import) med 400. Låsen kan angres av konsulenten selv.

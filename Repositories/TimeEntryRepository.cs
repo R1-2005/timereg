@@ -160,7 +160,8 @@ public class TimeEntryRepository
                 LEFT JOIN TimeEntries te ON te.ConsultantId = c.Id
                     AND te.Date >= @StartDate
                     AND te.Date <= @EndDate
-                WHERE c.EmployedFrom IS NOT NULL
+                WHERE c.CanRegisterHours = 1
+                    AND c.EmployedFrom IS NOT NULL
                     AND c.EmployedFrom <= @EndDate
                     AND (c.EmployedTo IS NULL OR c.EmployedTo >= @StartDate)
                 GROUP BY c.Id
