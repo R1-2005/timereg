@@ -329,8 +329,14 @@ body {
     color: white;
 }
 
-.btn-danger:hover {
+.btn-danger:hover:not(:disabled) {
     background: var(--color-danger-hover);
+}
+
+.btn-danger:disabled {
+    background: var(--color-border);
+    color: var(--color-text-muted);
+    cursor: not-allowed;
 }
 
 .btn-secondary {
