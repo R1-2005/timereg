@@ -9,47 +9,11 @@ export default {
 
             <div v-if="error" class="error">{{ error }}</div>
 
-            <form @submit.prevent="saveConsultant" class="card" style="background: var(--color-bg);">
-                <h3>{{ editing ? 'Rediger konsulent' : 'Legg til konsulent' }}</h3>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Fornavn</label>
-                        <input v-model="form.firstName" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Etternavn</label>
-                        <input v-model="form.lastName" required>
-                    </div>
-                    <div class="form-group">
-                        <label>E-post</label>
-                        <input v-model="form.email" type="email" required placeholder="navn@proventus.no">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Ansatt fra og med</label>
-                        <input type="month" v-model="form.employedFromMonth" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Ansatt til og med</label>
-                        <input type="month" v-model="form.employedToMonth">
-                    </div>
-                    <div class="form-group" style="display: flex; align-items: end; padding-bottom: 0.25rem;">
-                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                            <input type="checkbox" v-model="form.isAdmin">
-                            Administrator
-                        </label>
-                    </div>
-                </div>
-                <div>
-                    <button type="submit" class="btn btn-primary">
-                        {{ editing ? 'Oppdater' : 'Legg til' }}
-                    </button>
-                    <button v-if="editing" type="button" class="btn btn-secondary" @click="cancelEdit">
-                        Avbryt
-                    </button>
-                </div>
-            </form>
+            <div style="margin-bottom: 1rem;">
+                <button class="btn btn-primary" @click="openModal()">
+                    + Legg til konsulent
+                </button>
+            </div>
 
             <table>
                 <thead>
@@ -70,7 +34,7 @@ export default {
                         <td>{{ formatMonth(c.employedTo) }}</td>
                         <td>{{ c.isAdmin ? 'Ja' : '' }}</td>
                         <td class="actions">
-                            <button class="btn btn-sm btn-secondary" @click="edit(c)">Rediger</button>
+                            <button class="btn btn-sm btn-secondary" @click="openModal(c)">Rediger</button>
                             <button class="btn btn-sm btn-danger" @click="remove(c)">Slett</button>
                         </td>
                     </tr>
@@ -81,14 +45,63 @@ export default {
                     </tr>
                 </tbody>
             </table>
+
+            <!-- Modal -->
+            <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+                <div class="modal">
+                    <h3>{{ editing ? 'Rediger konsulent' : 'Ny konsulent' }}</h3>
+
+                    <div v-if="modalError" class="error">{{ modalError }}</div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Fornavn</label>
+                            <input v-model="form.firstName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Etternavn</label>
+                            <input v-model="form.lastName" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>E-post</label>
+                        <input v-model="form.email" type="email" required placeholder="navn@proventus.no">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Ansatt fra og med</label>
+                            <input type="month" v-model="form.employedFromMonth" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Ansatt til og med</label>
+                            <input type="month" v-model="form.employedToMonth">
+                        </div>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" v-model="form.isAdmin">
+                            Administrator
+                        </label>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" @click="closeModal">Avbryt</button>
+                        <button class="btn btn-primary" @click="saveConsultant">
+                            {{ editing ? 'Oppdater' : 'Opprett' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     `,
     data() {
         return {
             consultants: [],
             form: { firstName: '', lastName: '', email: '', isAdmin: false, employedFromMonth: '', employedToMonth: '' },
+            showModal: false,
             editing: null,
-            error: null
+            error: null,
+            modalError: null
         };
     },
     async mounted() {
@@ -102,12 +115,35 @@ export default {
                 this.error = 'Kunne ikke laste konsulenter: ' + e.message;
             }
         },
+        openModal(consultant = null) {
+            this.editing = consultant;
+            this.modalError = null;
+
+            if (consultant) {
+                this.form = {
+                    firstName: consultant.firstName,
+                    lastName: consultant.lastName,
+                    email: consultant.email,
+                    isAdmin: consultant.isAdmin,
+                    employedFromMonth: this.dateToMonth(consultant.employedFrom),
+                    employedToMonth: this.dateToMonth(consultant.employedTo)
+                };
+            } else {
+                this.form = { firstName: '', lastName: '', email: '', isAdmin: false, employedFromMonth: '', employedToMonth: '' };
+            }
+
+            this.showModal = true;
+        },
+        closeModal() {
+            this.showModal = false;
+            this.editing = null;
+        },
         async saveConsultant() {
-            this.error = null;
+            this.modalError = null;
 
             // Validate proventus.no email
             if (!this.form.email.toLowerCase().endsWith('@proventus.no')) {
-                this.error = 'Kun @proventus.no e-postadresser er tillatt.';
+                this.modalError = 'Kun @proventus.no e-postadresser er tillatt.';
                 return;
             }
 
@@ -127,27 +163,11 @@ export default {
                     await api.createConsultant(data);
                     this.$emit('consultant-added');
                 }
-                this.form = { firstName: '', lastName: '', email: '', isAdmin: false, employedFromMonth: '', employedToMonth: '' };
-                this.editing = null;
+                this.closeModal();
                 await this.load();
             } catch (e) {
-                this.error = 'Kunne ikke lagre: ' + e.message;
+                this.modalError = 'Kunne ikke lagre: ' + e.message;
             }
-        },
-        edit(consultant) {
-            this.editing = consultant;
-            this.form = {
-                firstName: consultant.firstName,
-                lastName: consultant.lastName,
-                email: consultant.email,
-                isAdmin: consultant.isAdmin,
-                employedFromMonth: this.dateToMonth(consultant.employedFrom),
-                employedToMonth: this.dateToMonth(consultant.employedTo)
-            };
-        },
-        cancelEdit() {
-            this.editing = null;
-            this.form = { firstName: '', lastName: '', email: '', isAdmin: false, employedFromMonth: '', employedToMonth: '' };
         },
         monthToFirstDay(monthStr) {
             if (!monthStr) return null;
