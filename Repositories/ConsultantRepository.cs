@@ -61,6 +61,20 @@ public class ConsultantRepository
         return rowsAffected > 0 ? consultant : null;
     }
 
+    public async Task<bool> HasTimeEntriesAsync(int id)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        return await connection.ExecuteScalarAsync<int>(
+            "SELECT COUNT(1) FROM TimeEntries WHERE ConsultantId = @Id LIMIT 1", new { Id = id }) > 0;
+    }
+
+    public async Task<IEnumerable<int>> GetIdsWithTimeEntriesAsync()
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        return await connection.QueryAsync<int>(
+            "SELECT DISTINCT ConsultantId FROM TimeEntries");
+    }
+
     public async Task<bool> DeleteAsync(int id)
     {
         using var connection = _connectionFactory.CreateConnection();

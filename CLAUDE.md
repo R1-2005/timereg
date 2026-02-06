@@ -50,6 +50,8 @@ dotnet publish -c Release  # Produksjon
 | LastName | TEXT NOT NULL | |
 | Email | TEXT NOT NULL | UNIQUE |
 | IsAdmin | INTEGER NOT NULL | DEFAULT 0 |
+| CanRegisterHours | INTEGER NOT NULL | DEFAULT 1 |
+| IsActive | INTEGER NOT NULL | DEFAULT 1 |
 | EmployedFrom | TEXT | yyyy-MM-dd, alltid 1. i mnd |
 | EmployedTo | TEXT | yyyy-MM-dd, alltid siste i mnd. null = aktiv |
 
@@ -125,14 +127,15 @@ UNIQUE(ConsultantId, Year, Month). Når en rad finnes er måneden markert som fe
 ## API-endepunkter
 
 ### Innlogging
-- `POST /api/login` ← `{ firstName, email }` → `Consultant` eller 401. Kun @proventus.no tillatt.
+- `POST /api/login` ← `{ firstName, email }` → `Consultant` eller 401. Kun @proventus.no tillatt. Deaktiverte brukere (IsActive=false) avvises med 400.
 
 ### Konsulenter
 - `GET /api/consultants` → `Consultant[]`
 - `GET /api/consultants/{id}` → `Consultant`
 - `POST /api/consultants` ← `Consultant` (validerer @proventus.no)
 - `PUT /api/consultants/{id}` ← `Consultant`
-- `DELETE /api/consultants/{id}`
+- `GET /api/consultants/with-time-entries` → `int[]` (konsulent-IDer som har timeregistreringer)
+- `DELETE /api/consultants/{id}` — avviser med 400 hvis konsulenten har timeregistreringer
 
 ### Fakturaprosjekter
 - `GET /api/invoice-projects` → `InvoiceProject[]`
@@ -175,8 +178,8 @@ UNIQUE(ConsultantId, Year, Month). Når en rad finnes er måneden markert som fe
 | Login | `login.js` | Innlogging med fornavn + e-post, lagrer bruker i localStorage | `POST /api/login` |
 | Home | `home.js` | Oversikt ansatte i valgt måned, fargekodert utfyllingsgrad, ferdig-status per konsulent | `GET monthly-summary`, `GET consultants`, `GET monthly-locks/by-month` |
 | TimeGrid | `time-grid.js` | Månedsrutenett for timeregistrering med autolagring, helgmarkering, sletteknapp per rad, JSON eksport/import, valgfri visning (hh:mm/desimal). Støtter `locked`-prop for skrivebeskyttelse | `GET/PUT/DELETE time-entries` |
-| ReportView | `report-view.js` | Faktureringsgrunnlag per fakturaprosjekt med Excel/PDF-eksport | `GET reports/monthly` |
-| AdminConsultants | `admin-consultants.js` | CRUD konsulenter med admin-flagg og ansettelsesperiode | `GET/POST/PUT/DELETE consultants` |
+| ReportView | `report-view.js` | Faktureringsgrunnlag per fakturaprosjekt med seksjonsfordelte timer og Excel/PDF-eksport | `GET reports/monthly`, `GET sections`, `GET jira-projects` |
+| AdminConsultants | `admin-consultants.js` | CRUD konsulenter med admin-flagg, aktiv-status og ansettelsesperiode. Fargekodede Ja/Nei-badges. Slett deaktivert for konsulenter med timer | `GET/POST/PUT/DELETE consultants`, `GET consultants/with-time-entries` |
 | AdminProjects | `admin-projects.js` | CRUD Jira-prosjekter med fordelingsnøkler og seksjonsfordeling, JSON eksport/import | `GET/POST/PUT/DELETE jira-projects`, `GET sections`, `GET invoice-projects` |
 | MonthPicker | `month-picker.js` | Gjenbrukbar månedsvelger med forrige/neste-navigasjon | (ingen) |
 
@@ -191,6 +194,8 @@ App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synl
 5. **Admin-tilgang:** Kun IsAdmin=true ser Admin-fanen.
 6. **E-postvalidering:** Kun @proventus.no-adresser ved innlogging og konsulentopprettelse.
 7. **Månedslås:** Konsulenter kan markere en måned som "ferdig". Låste måneder er skrivebeskyttet — API avviser alle skriveoperasjoner (upsert, delete, import) med 400. Låsen kan angres av konsulenten selv.
+8. **Deaktivering:** Konsulenter kan deaktiveres (IsActive=false). Deaktiverte brukere kan ikke logge inn. Konsulenter med timeregistreringer kan ikke slettes — de må deaktiveres i stedet.
+9. **Seksjonsfordeling i rapport:** Rapporten viser kolonner per seksjon med timer beregnet som `fakturaprosjekt-timer × seksjonsprosent / 100`. Samme kolonner i Excel- og PDF-eksport.
 
 ## Mønstre og konvensjoner
 

@@ -39,6 +39,7 @@ const api = {
 
     // Consultants
     getConsultants: () => api.get('/api/consultants'),
+    getConsultantsWithTimeEntries: () => api.get('/api/consultants/with-time-entries'),
     createConsultant: (data) => api.post('/api/consultants', data),
     updateConsultant: (id, data) => api.put(`/api/consultants/${id}`, data),
     deleteConsultant: (id) => api.delete(`/api/consultants/${id}`),

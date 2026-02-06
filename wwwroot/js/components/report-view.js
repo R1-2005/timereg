@@ -40,7 +40,8 @@ export default {
                             <tr>
                                 <th>Konsulent</th>
                                 <th>Jira-sak</th>
-                                <th class="text-right">Timer</th>
+                                <th v-for="s in sections" :key="s.id" class="text-right">{{ s.shortName || s.name }}</th>
+                                <th class="text-right">Timer totalt</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -48,10 +49,12 @@ export default {
                                 <tr v-for="(entry, eIndex) in getEntriesForConsultant(ip.id, consultant.id)" :key="entry.jiraIssueKey">
                                     <td>{{ eIndex === 0 ? consultant.name : '' }}</td>
                                     <td>{{ entry.jiraIssueKey }}</td>
+                                    <td v-for="s in sections" :key="s.id" class="text-right">{{ formatHours(getSectionHours(entry.hours, entry.jiraIssueKey, s.id)) }}</td>
                                     <td class="text-right">{{ formatHours(entry.hours) }}</td>
                                 </tr>
                                 <tr class="consultant-sum">
                                     <td colspan="2"><em>Sum {{ consultant.name }}</em></td>
+                                    <td v-for="s in sections" :key="s.id" class="text-right"><em>{{ formatHours(getConsultantSectionTotal(ip.id, consultant.id, s.id)) }}</em></td>
                                     <td class="text-right"><em>{{ formatHours(getConsultantTotal(ip.id, consultant.id)) }}</em></td>
                                 </tr>
                             </template>
@@ -59,6 +62,7 @@ export default {
                         <tfoot>
                             <tr class="sum-row">
                                 <td colspan="2"><strong>Totalt</strong></td>
+                                <td v-for="s in sections" :key="s.id" class="text-right"><strong>{{ formatHours(getProjectSectionTotal(ip.id, s.id)) }}</strong></td>
                                 <td class="text-right"><strong>{{ formatHours(getProjectTotal(ip.id)) }}</strong></td>
                             </tr>
                         </tfoot>
@@ -73,6 +77,8 @@ export default {
             month: new Date().getMonth() + 1,
             reportData: [],
             invoiceProjects: [],
+            sections: [],
+            jiraProjects: [],
             loading: true,
             error: null
         };
@@ -89,12 +95,16 @@ export default {
             this.loading = true;
             this.error = null;
             try {
-                const [report, invoiceProjects] = await Promise.all([
+                const [report, invoiceProjects, sections, jiraProjects] = await Promise.all([
                     api.getMonthlyReport(this.year, this.month),
-                    api.getInvoiceProjects()
+                    api.getInvoiceProjects(),
+                    api.getSections(),
+                    api.getJiraProjects()
                 ]);
                 this.reportData = report;
                 this.invoiceProjects = invoiceProjects;
+                this.sections = sections;
+                this.jiraProjects = jiraProjects;
             } catch (e) {
                 this.error = 'Kunne ikke laste data: ' + e.message;
             } finally {
@@ -104,6 +114,26 @@ export default {
         formatHours(hours) {
             if (!hours || hours === 0) return '0,00';
             return hours.toFixed(2).replace('.', ',');
+        },
+        getSectionKeys(jiraIssueKey) {
+            const dashIndex = jiraIssueKey.lastIndexOf('-');
+            if (dashIndex <= 0) return [];
+            const projectKey = jiraIssueKey.substring(0, dashIndex);
+            const jp = this.jiraProjects.find(p => p.key === projectKey);
+            return jp ? jp.sectionDistributionKeys : [];
+        },
+        getSectionHours(hours, jiraIssueKey, sectionId) {
+            const sdks = this.getSectionKeys(jiraIssueKey);
+            const sdk = sdks.find(s => s.sectionId === sectionId);
+            return sdk ? hours * sdk.percentage / 100 : 0;
+        },
+        getConsultantSectionTotal(invoiceProjectId, consultantId, sectionId) {
+            return this.getEntriesForConsultant(invoiceProjectId, consultantId)
+                .reduce((sum, e) => sum + this.getSectionHours(e.hours, e.jiraIssueKey, sectionId), 0);
+        },
+        getProjectSectionTotal(invoiceProjectId, sectionId) {
+            return this.getProjectData(invoiceProjectId)
+                .reduce((sum, e) => sum + this.getSectionHours(e.hours, e.jiraIssueKey, sectionId), 0);
         },
         getProjectData(invoiceProjectId) {
             return this.reportData.filter(r => r.invoiceProjectId === invoiceProjectId);

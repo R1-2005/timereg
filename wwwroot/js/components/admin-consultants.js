@@ -39,7 +39,7 @@ export default {
                         <td><span class="status-badge" :class="c.isActive ? 'status-yes' : 'status-no'">{{ c.isActive ? 'Ja' : 'Nei' }}</span></td>
                         <td class="actions">
                             <button class="btn btn-sm btn-secondary" @click="openModal(c)">Rediger</button>
-                            <button class="btn btn-sm btn-danger" @click="remove(c)">Slett</button>
+                            <button class="btn btn-sm btn-danger" @click="remove(c)" :disabled="hasHours(c.id)" :title="hasHours(c.id) ? 'Kan ikke slettes — har timeregistreringer. Deaktiver i stedet.' : ''">Slett</button>
                         </td>
                     </tr>
                     <tr v-if="consultants.length === 0">
@@ -115,6 +115,7 @@ export default {
     data() {
         return {
             consultants: [],
+            consultantIdsWithHours: [],
             form: { firstName: '', lastName: '', email: '', isAdmin: false, canRegisterHours: true, isActive: true, employedFromMonth: '', employedToMonth: '' },
             showModal: false,
             editing: null,
@@ -128,10 +129,18 @@ export default {
     methods: {
         async load() {
             try {
-                this.consultants = await api.getConsultants();
+                const [consultants, idsWithHours] = await Promise.all([
+                    api.getConsultants(),
+                    api.getConsultantsWithTimeEntries()
+                ]);
+                this.consultants = consultants;
+                this.consultantIdsWithHours = idsWithHours;
             } catch (e) {
                 this.error = 'Kunne ikke laste konsulenter: ' + e.message;
             }
+        },
+        hasHours(consultantId) {
+            return this.consultantIdsWithHours.includes(consultantId);
         },
         openModal(consultant = null) {
             this.editing = consultant;
