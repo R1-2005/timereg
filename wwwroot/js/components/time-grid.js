@@ -1,5 +1,5 @@
 import api from '../services/api.js';
-import { formatHours as fmtHours, formatDistribution as fmtDist } from '../utils/formatting.js';
+import { formatHours as fmtHours, formatDistribution as fmtDist, distributeWithRounding } from '../utils/formatting.js';
 
 export default {
     name: 'TimeGrid',
@@ -82,9 +82,9 @@ export default {
                                 <span class="invoice-project">{{ ip.shortName || (ip.projectNumber + ' ' + ip.name) }}</span>
                             </td>
                             <td v-for="day in daysInMonth" :key="day" class="day-col" :class="{ weekend: isWeekend(day) }">
-                                {{ formatDistribution(getInvoiceProjectDaySum(ip.id, day)) }}
+                                {{ formatDistribution(adjustedDayDistributions[day][ip.id] || 0) }}
                             </td>
-                            <td class="sum-col">{{ formatDistribution(getInvoiceProjectTotalSum(ip.id)) }}</td>
+                            <td class="sum-col">{{ formatDistribution(adjustedTotalDistributions[ip.id] || 0) }}</td>
                             <td class="action-col"></td>
                         </tr>
                     </tbody>
@@ -142,6 +142,24 @@ export default {
                 map[key] = entry;
             }
             return map;
+        },
+        adjustedDayDistributions() {
+            const result = {};
+            for (const day of this.daysInMonth) {
+                const rawValues = {};
+                for (const ip of this.invoiceProjects) {
+                    rawValues[ip.id] = this.getInvoiceProjectDaySum(ip.id, day);
+                }
+                result[day] = distributeWithRounding(rawValues);
+            }
+            return result;
+        },
+        adjustedTotalDistributions() {
+            const rawValues = {};
+            for (const ip of this.invoiceProjects) {
+                rawValues[ip.id] = this.getInvoiceProjectTotalSum(ip.id);
+            }
+            return distributeWithRounding(rawValues);
         }
     },
     watch: {

@@ -9,17 +9,24 @@ namespace timereg.Services;
 
 public class ReportService
 {
-    private static double GetSectionHours(
+    private static Dictionary<int, double> GetAdjustedSectionHours(
         string jiraIssueKey,
-        int sectionId,
         double hours,
+        List<Section> sections,
         Dictionary<string, Dictionary<int, double>> sectionKeyLookup)
     {
         var projectKey = JiraIssueKeyParser.ExtractProjectKey(jiraIssueKey);
-        if (projectKey is null) return 0;
-        if (sectionKeyLookup.TryGetValue(projectKey, out var sectionPcts) && sectionPcts.TryGetValue(sectionId, out var pct))
-            return hours * pct / 100.0;
-        return 0;
+        var rawValues = new Dictionary<int, double>();
+
+        foreach (var s in sections)
+        {
+            double sectionHours = 0;
+            if (projectKey != null && sectionKeyLookup.TryGetValue(projectKey, out var sectionPcts) && sectionPcts.TryGetValue(s.Id, out var pct))
+                sectionHours = hours * pct / 100.0;
+            rawValues[s.Id] = sectionHours;
+        }
+
+        return RoundingHelper.DistributeWithRounding(rawValues);
     }
 
     public byte[] GenerateExcel(
@@ -76,9 +83,10 @@ public class ReportService
             currentConsultant = consultantName;
             worksheet.Cell(row, 1).Value = consultantName;
             worksheet.Cell(row, 2).Value = entry.JiraIssueKey;
+            var adjustedSection = GetAdjustedSectionHours(entry.JiraIssueKey, entry.Hours, sections, sectionKeyLookup);
             for (int i = 0; i < sections.Count; i++)
             {
-                var sectionHours = GetSectionHours(entry.JiraIssueKey, sections[i].Id, entry.Hours, sectionKeyLookup);
+                var sectionHours = adjustedSection.GetValueOrDefault(sections[i].Id);
                 worksheet.Cell(row, 3 + i).Value = sectionHours;
                 worksheet.Cell(row, 3 + i).Style.NumberFormat.Format = "0.00";
                 consultantSectionTotals[sections[i].Id] += sectionHours;
@@ -228,7 +236,25 @@ public class ReportService
         ws.Cell(row, daysInMonth + 2).Style.Font.Bold = true;
         ws.Range(row, 1, row, daysInMonth + 2).Style.Border.TopBorder = XLBorderStyleValues.Thin;
 
-        // Invoice project distribution rows
+        // Invoice project distribution rows — compute adjusted distributions per day
+        var adjustedDayDist = new Dictionary<int, Dictionary<int, double>>();
+        for (int d = 1; d <= daysInMonth; d++)
+        {
+            var rawValues = new Dictionary<int, double>();
+            foreach (var ip in invoiceProjects)
+            {
+                var daySum = 0.0;
+                foreach (var e in entriesList.Where(e => e.Date.Day == d))
+                {
+                    var projectKey = JiraIssueKeyParser.ExtractProjectKey(e.JiraIssueKey);
+                    if (projectKey != null && distKeyLookup.TryGetValue(projectKey, out var ipPcts) && ipPcts.TryGetValue(ip.Id, out var pct))
+                        daySum += (double)e.Hours * pct / 100.0;
+                }
+                rawValues[ip.Id] = daySum;
+            }
+            adjustedDayDist[d] = RoundingHelper.DistributeWithRounding(rawValues);
+        }
+
         foreach (var ip in invoiceProjects)
         {
             row++;
@@ -239,13 +265,7 @@ public class ReportService
 
             for (int d = 1; d <= daysInMonth; d++)
             {
-                var daySum = 0.0;
-                foreach (var e in entriesList.Where(e => e.Date.Day == d))
-                {
-                    var projectKey = JiraIssueKeyParser.ExtractProjectKey(e.JiraIssueKey);
-                    if (projectKey != null && distKeyLookup.TryGetValue(projectKey, out var ipPcts) && ipPcts.TryGetValue(ip.Id, out var pct))
-                        daySum += (double)e.Hours * pct / 100.0;
-                }
+                var daySum = adjustedDayDist[d].GetValueOrDefault(ip.Id);
                 if (daySum > 0)
                 {
                     ws.Cell(row, 1 + d).Value = daySum;
@@ -357,9 +377,10 @@ public class ReportService
                         currentConsultant = consultantName;
                         table.Cell().Padding(5).Text(consultantName);
                         table.Cell().Padding(5).Text(entry.JiraIssueKey);
+                        var adjustedSection = GetAdjustedSectionHours(entry.JiraIssueKey, entry.Hours, sections, sectionKeyLookup);
                         foreach (var s in sections)
                         {
-                            var sectionHours = GetSectionHours(entry.JiraIssueKey, s.Id, entry.Hours, sectionKeyLookup);
+                            var sectionHours = adjustedSection.GetValueOrDefault(s.Id);
                             table.Cell().Padding(5).AlignRight().Text(sectionHours.ToString("0.00"));
                             consultantSectionTotals[s.Id] += sectionHours;
                             grandSectionTotals[s.Id] += sectionHours;

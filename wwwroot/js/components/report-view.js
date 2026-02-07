@@ -1,6 +1,6 @@
 import api from '../services/api.js';
 import MonthPicker from './month-picker.js';
-import { formatDistribution } from '../utils/formatting.js';
+import { formatDistribution, distributeWithRounding } from '../utils/formatting.js';
 
 export default {
     name: 'ReportView',
@@ -90,6 +90,24 @@ export default {
             employerName: saved.employerName || ''
         };
     },
+    computed: {
+        adjustedSectionHoursMap() {
+            const map = {};
+            for (const entry of this.filteredReportData()) {
+                const cacheKey = `${entry.hours}-${entry.jiraIssueKey}`;
+                if (map[cacheKey]) continue;
+
+                const rawValues = {};
+                const sdks = this.getSectionKeys(entry.jiraIssueKey);
+                for (const s of this.sections) {
+                    const sdk = sdks.find(sk => sk.sectionId === s.id);
+                    rawValues[s.id] = sdk ? entry.hours * sdk.percentage / 100 : 0;
+                }
+                map[cacheKey] = distributeWithRounding(rawValues);
+            }
+            return map;
+        }
+    },
     watch: {
         year() { this.load(); },
         month() { this.load(); }
@@ -130,9 +148,10 @@ export default {
             return jp ? jp.sectionDistributionKeys : [];
         },
         getSectionHours(hours, jiraIssueKey, sectionId) {
-            const sdks = this.getSectionKeys(jiraIssueKey);
-            const sdk = sdks.find(s => s.sectionId === sectionId);
-            return sdk ? hours * sdk.percentage / 100 : 0;
+            const cacheKey = `${hours}-${jiraIssueKey}`;
+            const adjusted = this.adjustedSectionHoursMap[cacheKey];
+            if (adjusted) return adjusted[sectionId] || 0;
+            return 0;
         },
         getConsultantSectionTotal(invoiceProjectId, consultantId, sectionId) {
             return this.getEntriesForConsultant(invoiceProjectId, consultantId)
