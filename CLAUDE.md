@@ -191,6 +191,13 @@ UNIQUE(ConsultantId, Year, Month). Når en rad finnes er måneden markert som fe
 - `GET /api/time-entries/export/excel?consultantId&year&month` → Excel-fil (ClosedXML). Timeark med timer per dag per Jira-sak og fordeling per fakturaprosjekt. Filnavn: `Timeark_{Navn}_{Månedsnavn}_{år}.xlsx`
 - `POST /api/time-entries/import` ← `TimeEntryImportDto` — sletter eksisterende for måneden, importerer nye. Validerer månedslås.
 
+### Database backup/restore
+- `GET /api/database/status` → `{ lastBackupAt, schemaVersion }` — siste backup-tidspunkt og antall kjørte migreringer
+- `POST /api/database/backup` → `BackupInfo` — oppretter ny backup i `Backups/`-mappen
+- `GET /api/database/backups` → `BackupInfo[]` — lister alle backup-filer med tidspunkt, skjemaversjon og størrelse
+- `POST /api/database/restore` ← `{ filename }` — gjenoppretter fra valgt backup. Avviser med 400 hvis skjemaversjon ikke matcher
+- `DELETE /api/database/backups/{filename}` — sletter en backup-fil
+
 ### Oversikt og rapporter
 - `GET /api/monthly-summary?year&month` → sammendrag per konsulent for hjem-siden
 - `GET /api/reports/monthly?year&month` → faktureringsdata per prosjekt (filtrert på ansatte i perioden, inkl. employerId)
@@ -209,9 +216,10 @@ UNIQUE(ConsultantId, Year, Month). Når en rad finnes er måneden markert som fe
 | AdminEmployers | `admin-employers.js` | CRUD arbeidsgivere med org.nr., e-postdomene og adresse. Slett deaktivert for arbeidsgivere med konsulenter | `GET/POST/PUT/DELETE employers`, `GET employers/with-consultants` |
 | AdminConsultants | `admin-consultants.js` | CRUD konsulenter med arbeidsgiver-dropdown, admin-flagg, aktiv-status og ansettelsesperiode. E-post valideres dynamisk mot valgt arbeidsgivers domene. Slett deaktivert for konsulenter med timer | `GET/POST/PUT/DELETE consultants`, `GET consultants/with-time-entries`, `GET employers` |
 | AdminProjects | `admin-projects.js` | CRUD Jira-prosjekter med fordelingsnøkler og seksjonsfordeling, JSON eksport/import | `GET/POST/PUT/DELETE jira-projects`, `GET sections`, `GET invoice-projects` |
+| AdminSystem | `admin-system.js` | Database backup/restore: status, opprett backup, liste, gjenopprett og slett | `GET/POST database/status`, `GET/POST/DELETE database/backups` |
 | MonthPicker | `month-picker.js` | Gjenbrukbar månedsvelger med forrige/neste-navigasjon. Plassert i navbaren av app.js, delt state for Hjem/Timeregistrering/Rapport | (ingen) |
 
-App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synlig for IsAdmin-brukere med arkfaner (Jira-prosjekter, Konsulenter, Arbeidsgivere). MonthPicker er plassert sentrert i navbaren og deler måned-state mellom Hjem, Timeregistrering og Rapport (skjules på Admin-fanen). Håndterer månedslås-tilstand, "Marker som ferdig"-knapp og "Importer fra G-Sheet"-knapp (kun admin) i timeregistreringsfanen. Eksport-knapper (JSON og Excel) er alltid synlige, også når måneden er låst. Inkluderer dark/light theme toggle (localStorage-persistert).
+App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synlig for IsAdmin-brukere med arkfaner (Jira-prosjekter, Konsulenter, Arbeidsgivere, System). MonthPicker er plassert sentrert i navbaren og deler måned-state mellom Hjem, Timeregistrering og Rapport (skjules på Admin-fanen). Håndterer månedslås-tilstand, "Marker som ferdig"-knapp og "Importer fra G-Sheet"-knapp (kun admin) i timeregistreringsfanen. Eksport-knapper (JSON og Excel) er alltid synlige, også når måneden er låst. Inkluderer dark/light theme toggle (localStorage-persistert).
 
 ## Forretningsregler
 
@@ -226,6 +234,7 @@ App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synl
 9. **Deaktivering:** Konsulenter kan deaktiveres (IsActive=false). Deaktiverte brukere kan ikke logge inn. Konsulenter med timeregistreringer kan ikke slettes — de må deaktiveres i stedet.
 10. **Seksjonsfordeling i rapport:** Rapporten viser kolonner per seksjon med timer beregnet som `fakturaprosjekt-timer × seksjonsprosent / 100`. Samme kolonner i Excel- og PDF-eksport.
 11. **Helligdagsmarkering:** Norske helligdager på hverdager markeres med rød tekst og svak bakgrunnsfarge i timerutenettet, med tooltip for helligdagsnavn. Hjem-sidens arbeidsdagstelling ekskluderer helligdager. Data hentes fra Nager.Date API via backend-proxy med caching.
+12. **Database-backup:** Automatisk backup hver natt kl. 01:00 lokaltid. Manuelle backuper kan opprettes fra Admin → System. Restore krever at skjemaversjon i backup matcher nåværende database.
 
 ## Mønstre og konvensjoner
 
@@ -257,6 +266,8 @@ Følg mønsteret fra DistributionKeys / SectionDistributionKeys:
 ### Services (`Services/`)
 - `ReportService` — genererer Excel (ClosedXML) og PDF (QuestPDF) rapporter. Registrert som scoped service.
 - `HolidayService` — henter norske helligdager fra Nager.Date API med in-memory cache per år. Singleton. Pre-laster inneværende + nabo-år ved oppstart (jan–jun: forrige år, jul–des: neste år).
+- `DatabaseBackupService` — backup/restore av SQLite-database via `BackupDatabase` API. Singleton. Lagrer backuper i `Backups/` relativt til databasefilen. Filnavn: `backup_yyyy-MM-dd_HHmmss.db`. Skjemaversjon (antall rader i `__migrations`) valideres ved restore — avviser hvis versjonene ikke matcher.
+- `ScheduledBackupService` — `BackgroundService` som kjører automatisk backup kl. 01:00 lokaltid hver natt via `DatabaseBackupService`.
 
 ### Frontend-komponent
 - ES6-modul som eksporterer Vue Options API-objekt med `template` som inline string
