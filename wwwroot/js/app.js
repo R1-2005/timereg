@@ -119,7 +119,7 @@ const App = {
                                 :class="isMonthLocked ? 'btn-lock-undo' : 'btn-lock'"
                                 @click="toggleMonthLock"
                             >
-                                {{ isMonthLocked ? 'Angre ferdig-markering' : 'Marker som ferdig' }}
+                                {{ isMonthLocked ? '\uD83D\uDD13 Lås opp timeark' : '\uD83D\uDD12 Lås timeark' }}
                             </button>
                         </div>
                     </div>

@@ -334,7 +334,7 @@ timeEntries.MapPut("/", async (TimeEntryUpsertDto dto, TimeEntryRepository timeR
 {
     // Check if month is locked
     if (await lockRepo.IsLockedAsync(dto.ConsultantId, dto.Date.Year, dto.Date.Month))
-        return Results.BadRequest(new { error = "Måneden er markert som ferdig. Angre ferdig-markeringen for å gjøre endringer." });
+        return Results.BadRequest(new { error = "Måneden er låst. Lås opp timearket for å gjøre endringer." });
 
     // Extract project key from issue key (e.g., "AFP" from "AFP-123")
     var projectKey = JiraIssueKeyParser.ExtractProjectKey(dto.JiraIssueKey);
@@ -366,7 +366,7 @@ timeEntries.MapDelete("/{id:int}", async (int id, TimeEntryRepository repo, Mont
         return Results.NotFound();
 
     if (await lockRepo.IsLockedAsync(entry.ConsultantId, entry.Date.Year, entry.Date.Month))
-        return Results.BadRequest(new { error = "Måneden er markert som ferdig. Angre ferdig-markeringen for å gjøre endringer." });
+        return Results.BadRequest(new { error = "Måneden er låst. Lås opp timearket for å gjøre endringer." });
 
     await repo.DeleteAsync(id);
     return Results.NoContent();
@@ -375,7 +375,7 @@ timeEntries.MapDelete("/{id:int}", async (int id, TimeEntryRepository repo, Mont
 timeEntries.MapDelete("/by-issue", async (int consultantId, string jiraIssueKey, int year, int month, TimeEntryRepository repo, MonthlyLockRepository lockRepo) =>
 {
     if (await lockRepo.IsLockedAsync(consultantId, year, month))
-        return Results.BadRequest(new { error = "Måneden er markert som ferdig. Angre ferdig-markeringen for å gjøre endringer." });
+        return Results.BadRequest(new { error = "Måneden er låst. Lås opp timearket for å gjøre endringer." });
 
     var rowsDeleted = await repo.DeleteByConsultantAndIssueAsync(consultantId, jiraIssueKey, year, month);
     return Results.Ok(new { deleted = rowsDeleted });
@@ -426,7 +426,7 @@ timeEntries.MapGet("/export/excel", async (int consultantId, int year, int month
 timeEntries.MapPost("/import", async (TimeEntryImportDto importData, TimeEntryRepository timeRepo, JiraProjectRepository jiraRepo, MonthlyLockRepository lockRepo) =>
 {
     if (await lockRepo.IsLockedAsync(importData.ConsultantId, importData.Year, importData.Month))
-        return Results.BadRequest(new { error = "Måneden er markert som ferdig. Angre ferdig-markeringen for å gjøre endringer." });
+        return Results.BadRequest(new { error = "Måneden er låst. Lås opp timearket for å gjøre endringer." });
 
     // Delete existing entries for this consultant/month
     await timeRepo.DeleteByConsultantAndMonthAsync(importData.ConsultantId, importData.Year, importData.Month);
