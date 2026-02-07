@@ -1,5 +1,6 @@
 import api from '../services/api.js';
 import { MONTH_NAMES, formatDistribution } from '../utils/formatting.js';
+import { fetchHolidaysForMonth } from '../utils/holidays.js';
 
 export default {
     name: 'Home',
@@ -9,15 +10,16 @@ export default {
     },
     template: `
         <div class="home">
-            <span class="employer-label">{{ employerName }}</span>
-
             <div v-if="loading" class="loading">Laster...</div>
             <div v-else-if="error" class="error">{{ error }}</div>
             <div v-else-if="consultants.length === 0" class="card">
                 <p class="no-data">Ingen konsulenter registrert.</p>
             </div>
             <div v-else class="card">
-                <h2>Fakturering {{ monthName }} {{ year }}</h2>
+                <div class="home-header">
+                    <h2>Fakturering {{ monthName }} {{ year }}</h2>
+                    <span class="employer-label">{{ employerName }}</span>
+                </div>
                 <table>
                     <thead>
                         <tr>
@@ -68,6 +70,7 @@ export default {
             summaryData: [],
             invoiceProjects: [],
             monthlyLocks: [],
+            holidays: [],
             loading: true,
             error: null,
             employerId: saved.employerId || null,
@@ -78,13 +81,23 @@ export default {
         monthName() {
             return MONTH_NAMES[this.month - 1];
         },
+        holidaySet() {
+            const set = new Set();
+            for (const h of this.holidays) {
+                const d = new Date(h.date);
+                if (d.getFullYear() === this.year && d.getMonth() + 1 === this.month) {
+                    set.add(d.getDate());
+                }
+            }
+            return set;
+        },
         workDaysInMonth() {
             const daysInMonth = new Date(this.year, this.month, 0).getDate();
             let workDays = 0;
             for (let day = 1; day <= daysInMonth; day++) {
                 const date = new Date(this.year, this.month - 1, day);
                 const dow = date.getDay();
-                if (dow !== 0 && dow !== 6) {
+                if (dow !== 0 && dow !== 6 && !this.holidaySet.has(day)) {
                     workDays++;
                 }
             }
@@ -128,14 +141,16 @@ export default {
             this.loading = true;
             this.error = null;
             try {
-                const [summary, invoiceProjects, locks] = await Promise.all([
+                const [summary, invoiceProjects, locks, holidays] = await Promise.all([
                     api.getMonthlySummary(this.year, this.month),
                     api.getInvoiceProjects(),
-                    api.getMonthlyLocksByMonth(this.year, this.month)
+                    api.getMonthlyLocksByMonth(this.year, this.month),
+                    fetchHolidaysForMonth(this.year, this.month)
                 ]);
                 this.summaryData = summary;
                 this.invoiceProjects = invoiceProjects;
                 this.monthlyLocks = locks;
+                this.holidays = holidays;
             } catch (e) {
                 this.error = 'Kunne ikke laste data: ' + e.message;
             } finally {

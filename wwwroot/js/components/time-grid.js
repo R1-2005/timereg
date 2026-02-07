@@ -1,5 +1,6 @@
 import api from '../services/api.js';
 import { formatHours as fmtHours, formatDistribution as fmtDist, distributeWithRounding } from '../utils/formatting.js';
+import { fetchHolidaysForMonth } from '../utils/holidays.js';
 
 export default {
     name: 'TimeGrid',
@@ -13,7 +14,7 @@ export default {
                     <thead>
                         <tr class="weekday-row">
                             <th class="issue-col"></th>
-                            <th v-for="day in daysInMonth" :key="'wd-' + day" class="day-col" :class="{ weekend: isWeekend(day), 'weekend-text': isWeekend(day) }">
+                            <th v-for="day in daysInMonth" :key="'wd-' + day" class="day-col" :class="{ weekend: isWeekend(day), holiday: isHoliday(day) && !isWeekend(day), 'weekend-text': isWeekend(day) || isHoliday(day) }" :title="getHolidayName(day)">
                                 {{ getWeekdayShort(day) }}
                             </th>
                             <th class="sum-col"></th>
@@ -21,7 +22,7 @@ export default {
                         </tr>
                         <tr>
                             <th class="issue-col">Jira-sak</th>
-                            <th v-for="day in daysInMonth" :key="day" class="day-col" :class="{ weekend: isWeekend(day) }">
+                            <th v-for="day in daysInMonth" :key="day" class="day-col" :class="{ weekend: isWeekend(day), holiday: isHoliday(day) && !isWeekend(day), 'weekend-text': isHoliday(day) }" :title="getHolidayName(day)">
                                 {{ day }}
                             </th>
                             <th class="sum-col">Sum</th>
@@ -42,7 +43,7 @@ export default {
                                 >
                                 <span v-else-if="rowIndex < rows.length - 1" class="issue-key">{{ row.issueKey }}</span>
                             </td>
-                            <td v-for="day in daysInMonth" :key="day" class="day-col" :class="{ weekend: isWeekend(day) }">
+                            <td v-for="day in daysInMonth" :key="day" class="day-col" :class="{ weekend: isWeekend(day), holiday: isHoliday(day) && !isWeekend(day) }">
                                 <input
                                     v-if="rowIndex < rows.length - 1"
                                     :value="getDisplayValue(row.issueKey, day)"
@@ -69,7 +70,7 @@ export default {
                         <!-- Sum row -->
                         <tr class="sum-row">
                             <td class="issue-col"><strong>Sum timer</strong></td>
-                            <td v-for="day in daysInMonth" :key="day" class="day-col" :class="{ weekend: isWeekend(day) }">
+                            <td v-for="day in daysInMonth" :key="day" class="day-col" :class="{ weekend: isWeekend(day), holiday: isHoliday(day) && !isWeekend(day) }">
                                 <strong>{{ formatHours(getDaySum(day)) }}</strong>
                             </td>
                             <td class="sum-col"><strong>{{ formatHours(getTotalSum()) }}</strong></td>
@@ -81,7 +82,7 @@ export default {
                             <td class="issue-col">
                                 <span class="invoice-project">{{ ip.shortName || (ip.projectNumber + ' ' + ip.name) }}</span>
                             </td>
-                            <td v-for="day in daysInMonth" :key="day" class="day-col" :class="{ weekend: isWeekend(day) }">
+                            <td v-for="day in daysInMonth" :key="day" class="day-col" :class="{ weekend: isWeekend(day), holiday: isHoliday(day) && !isWeekend(day) }">
                                 {{ formatDistribution(adjustedDayDistributions[day][ip.id] || 0) }}
                             </td>
                             <td class="sum-col">{{ formatDistribution(adjustedTotalDistributions[ip.id] || 0) }}</td>
@@ -119,6 +120,7 @@ export default {
             entries: [],
             jiraProjects: [],
             invoiceProjects: [],
+            holidays: [],
             newIssueKey: '',
             error: null,
             saving: false
@@ -160,6 +162,18 @@ export default {
                 rawValues[ip.id] = this.getInvoiceProjectTotalSum(ip.id);
             }
             return distributeWithRounding(rawValues);
+        },
+        holidayMap() {
+            const map = new Map();
+            const y = this.year;
+            const m = this.month;
+            for (const h of this.holidays) {
+                const d = new Date(h.date);
+                if (d.getFullYear() === y && d.getMonth() + 1 === m) {
+                    map.set(d.getDate(), h.name);
+                }
+            }
+            return map;
         }
     },
     watch: {
@@ -174,14 +188,16 @@ export default {
         async load() {
             this.error = null;
             try {
-                const [entries, jiraProjects, invoiceProjects] = await Promise.all([
+                const [entries, jiraProjects, invoiceProjects, holidays] = await Promise.all([
                     api.getTimeEntries(this.consultantId, this.year, this.month),
                     api.getJiraProjects(),
-                    api.getInvoiceProjects()
+                    api.getInvoiceProjects(),
+                    fetchHolidaysForMonth(this.year, this.month)
                 ]);
                 this.entries = entries;
                 this.jiraProjects = jiraProjects;
                 this.invoiceProjects = invoiceProjects;
+                this.holidays = holidays;
             } catch (e) {
                 this.error = 'Kunne ikke laste data: ' + e.message;
             }
@@ -191,6 +207,14 @@ export default {
             const date = new Date(this.year, this.month - 1, day);
             const dow = date.getDay();
             return dow === 0 || dow === 6;
+        },
+
+        isHoliday(day) {
+            return this.holidayMap.has(day);
+        },
+
+        getHolidayName(day) {
+            return this.holidayMap.get(day) || '';
         },
 
         getWeekdayShort(day) {

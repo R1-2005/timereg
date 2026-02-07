@@ -21,6 +21,12 @@ builder.Services.AddScoped<ReportRepository>();
 builder.Services.AddScoped<SectionRepository>();
 builder.Services.AddScoped<MonthlyLockRepository>();
 builder.Services.AddScoped<ReportService>();
+builder.Services.AddHttpClient("NagerDate", client =>
+{
+    client.BaseAddress = new Uri("https://date.nager.at/api/v3/");
+    client.Timeout = TimeSpan.FromSeconds(5);
+});
+builder.Services.AddSingleton<HolidayService>();
 
 var app = builder.Build();
 
@@ -30,6 +36,9 @@ using (var scope = app.Services.CreateScope())
     var dbInitializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
     await dbInitializer.InitializeAsync();
 }
+
+// Pre-fetch holidays for current and next year
+await app.Services.GetRequiredService<HolidayService>().PreloadAsync();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -190,6 +199,10 @@ api.MapGet("/invoice-projects", async (InvoiceProjectRepository repo) =>
 // Sections
 api.MapGet("/sections", async (SectionRepository repo) =>
     Results.Ok(await repo.GetAllAsync()));
+
+// Holidays
+api.MapGet("/holidays", async (int year, HolidayService holidayService) =>
+    Results.Ok(await holidayService.GetHolidaysAsync(year)));
 
 // Jira Projects
 var jiraProjects = api.MapGroup("/jira-projects");

@@ -165,6 +165,9 @@ UNIQUE(ConsultantId, Year, Month). Når en rad finnes er måneden markert som fe
 ### Seksjoner
 - `GET /api/sections` → `Section[]`
 
+### Helligdager
+- `GET /api/holidays?year=2026` → `HolidayDto[]` (`{ date, name }`). Proxy mot Nager.Date API (`date.nager.at`), cachet i minnet per år. Pre-lastes ved oppstart (inneværende + nabo-år). Returnerer tom liste ved API-feil.
+
 ### Jira-prosjekter
 - `GET /api/jira-projects` → `JiraProjectDto[]` (inkl. distributionKeys + sectionDistributionKeys)
 - `GET /api/jira-projects/{id}` → `JiraProjectDto`
@@ -199,8 +202,8 @@ UNIQUE(ConsultantId, Year, Month). Når en rad finnes er måneden markert som fe
 | Komponent | Fil | Beskrivelse | API-kall |
 |-----------|-----|-------------|----------|
 | Login | `login.js` | Innlogging med fornavn + e-post, lagrer bruker i localStorage | `POST /api/login` |
-| Home | `home.js` | Oversikt ansatte i valgt måned, filtrert på innlogget brukers arbeidsgiver, fargekodert utfyllingsgrad, ferdig-status per konsulent. Mottar `year`/`month` som props fra app.js | `GET monthly-summary`, `GET monthly-locks/by-month` |
-| TimeGrid | `time-grid.js` | Månedsrutenett for timeregistrering med autolagring, helgmarkering, sletteknapp per rad, valgfri visning (hh:mm/desimal). Støtter `locked`-prop for skrivebeskyttelse | `GET/PUT/DELETE time-entries` |
+| Home | `home.js` | Oversikt ansatte i valgt måned, filtrert på innlogget brukers arbeidsgiver, fargekodert utfyllingsgrad, ferdig-status per konsulent. Arbeidsdager ekskluderer helligdager. Mottar `year`/`month` som props fra app.js | `GET monthly-summary`, `GET monthly-locks/by-month`, `GET holidays` |
+| TimeGrid | `time-grid.js` | Månedsrutenett for timeregistrering med autolagring, helg-/helligdagsmarkering, sletteknapp per rad, valgfri visning (hh:mm/desimal). Støtter `locked`-prop for skrivebeskyttelse | `GET/PUT/DELETE time-entries`, `GET holidays` |
 | GSheetImport | `gsheet-import.js` | Google Sheets-import modal (tab-separert copy-paste, kun admin). Emitter `imported` for reload | `POST time-entries/import` |
 | ReportView | `report-view.js` | Faktureringsgrunnlag per fakturaprosjekt, filtrert på innlogget brukers arbeidsgiver, med seksjonsfordelte timer og Excel/PDF-eksport. Mottar `year`/`month` som props fra app.js | `GET reports/monthly`, `GET sections`, `GET jira-projects` |
 | AdminEmployers | `admin-employers.js` | CRUD arbeidsgivere med org.nr., e-postdomene og adresse. Slett deaktivert for arbeidsgivere med konsulenter | `GET/POST/PUT/DELETE employers`, `GET employers/with-consultants` |
@@ -222,6 +225,7 @@ App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synl
 8. **Månedslås:** Konsulenter kan markere en måned som "ferdig". Låste måneder er skrivebeskyttet — API avviser alle skriveoperasjoner (upsert, delete, import) med 400. Låsen kan angres av konsulenten selv.
 9. **Deaktivering:** Konsulenter kan deaktiveres (IsActive=false). Deaktiverte brukere kan ikke logge inn. Konsulenter med timeregistreringer kan ikke slettes — de må deaktiveres i stedet.
 10. **Seksjonsfordeling i rapport:** Rapporten viser kolonner per seksjon med timer beregnet som `fakturaprosjekt-timer × seksjonsprosent / 100`. Samme kolonner i Excel- og PDF-eksport.
+11. **Helligdagsmarkering:** Norske helligdager på hverdager markeres med rød tekst og svak bakgrunnsfarge i timerutenettet, med tooltip for helligdagsnavn. Hjem-sidens arbeidsdagstelling ekskluderer helligdager. Data hentes fra Nager.Date API via backend-proxy med caching.
 
 ## Mønstre og konvensjoner
 
@@ -252,6 +256,7 @@ Følg mønsteret fra DistributionKeys / SectionDistributionKeys:
 
 ### Services (`Services/`)
 - `ReportService` — genererer Excel (ClosedXML) og PDF (QuestPDF) rapporter. Registrert som scoped service.
+- `HolidayService` — henter norske helligdager fra Nager.Date API med in-memory cache per år. Singleton. Pre-laster inneværende + nabo-år ved oppstart (jan–jun: forrige år, jul–des: neste år).
 
 ### Frontend-komponent
 - ES6-modul som eksporterer Vue Options API-objekt med `template` som inline string
@@ -263,6 +268,9 @@ Følg mønsteret fra DistributionKeys / SectionDistributionKeys:
 - `MONTH_NAMES_SHORT` — korte månedsnavn (jan, feb, ...)
 - `formatHours(hours, mode)` — formatering av timer (1 desimal eller hh:mm)
 - `formatDistribution(hours, mode)` — formatering av fordelte timer (2 desimaler eller hh:mm)
+
+### Frontend-hjelpefunksjoner (`wwwroot/js/utils/holidays.js`)
+- `fetchHolidaysForMonth(year, month)` — henter helligdager for to år (inneværende + nabo-år basert på måned), med modul-level cache. Brukes av time-grid.js og home.js.
 
 ## Viktig kontekst
 

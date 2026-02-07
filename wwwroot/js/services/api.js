@@ -87,6 +87,9 @@ const api = {
     getMonthlyLocksByMonth: (year, month) =>
         api.get(`/api/monthly-locks/by-month?year=${year}&month=${month}`),
 
+    // Holidays
+    getHolidays: (year) => api.get(`/api/holidays?year=${year}`),
+
     // Monthly summary
     getMonthlySummary: (year, month) => api.get(`/api/monthly-summary?year=${year}&month=${month}`),
 

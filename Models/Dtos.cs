@@ -70,3 +70,5 @@ public class MonthlyLockToggleDto
     public int Month { get; set; }
     public bool Locked { get; set; }
 }
+
+public record HolidayDto(string Date, string Name);

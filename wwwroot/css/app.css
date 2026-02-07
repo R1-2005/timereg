@@ -22,6 +22,8 @@
     --color-weekend-bg: #fafafa;
     --color-weekend-header: #f1f5f9;
     --color-weekend-text: #dc2626;
+    --color-holiday-bg: #fff5f5;
+    --color-holiday-header: #fef2f2;
     --color-sum-bg: #f0f9ff;
     --color-sum-highlight: #e0f2fe;
     --color-distribution-bg: #fefce8;
@@ -76,6 +78,8 @@ html[data-theme="dark"] {
     --color-weekend-bg: #162033;
     --color-weekend-header: #1a2744;
     --color-weekend-text: #f87171;
+    --color-holiday-bg: #1f1215;
+    --color-holiday-header: #261519;
     --color-sum-bg: #0c2340;
     --color-sum-highlight: #0f2d52;
     --color-distribution-bg: #1a1a0e;
@@ -604,13 +608,22 @@ tfoot .sum-row td {
     color: var(--color-primary);
 }
 
+/* Home header */
+.home-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.home-header h2 {
+    margin: 0 0 20px 0;
+}
+
 /* Employer label */
 .employer-label {
-    font-size: 15px;
+    font-size: 18px;
     font-weight: 600;
-    color: var(--color-text-muted);
-    margin-bottom: 16px;
-    display: inline-block;
+    color: var(--color-primary);
 }
 
 /* Time grid */
@@ -778,6 +791,14 @@ tfoot .sum-row td {
 
 .time-grid th.day-col.weekend {
     background: var(--color-weekend-header);
+}
+
+.time-grid .day-col.holiday {
+    background: var(--color-holiday-bg);
+}
+
+.time-grid th.day-col.holiday {
+    background: var(--color-holiday-header);
 }
 
 .time-grid .weekend-text {
