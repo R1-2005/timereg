@@ -25,7 +25,7 @@ export default {
                         <tr>
                             <th>Konsulent</th>
                             <th>Status</th>
-                            <th class="text-right">Utfylt</th>
+                            <th>Utfylt</th>
                             <th v-for="ip in invoiceProjects" :key="ip.id" class="text-right">
                                 {{ ip.shortName || (ip.projectNumber + ' ' + ip.name) }}
                             </th>
