@@ -9,7 +9,7 @@ import TimeGrid from './components/time-grid.js';
 import GSheetImport from './components/gsheet-import.js';
 import ReportView from './components/report-view.js';
 
-const { createApp, ref, watch, onMounted } = Vue;
+const { createApp, ref, watch, onMounted, onBeforeUnmount } = Vue;
 
 const App = {
     components: {
@@ -103,19 +103,6 @@ const App = {
                                 <option value="hhmm">Timer som hh:mm</option>
                                 <option value="decimal">Timer som desimaltall</option>
                             </select>
-                            <button v-if="!isMonthLocked && consultant.isAdmin" class="btn btn-secondary" @click="openGSheetImport">
-                                Importer fra G-Sheet
-                            </button>
-                            <button class="btn btn-secondary" @click="exportExcel">
-                                📊 Eksporter Excel
-                            </button>
-                            <button class="btn btn-secondary" @click="exportJson">
-                                Eksporter JSON
-                            </button>
-                            <label v-if="!isMonthLocked" class="btn btn-secondary import-btn">
-                                Importer JSON
-                                <input type="file" accept=".json" @change="importJson" hidden>
-                            </label>
                             <button
                                 class="btn"
                                 :class="isMonthLocked ? 'btn-lock-undo' : 'btn-lock'"
@@ -123,6 +110,26 @@ const App = {
                             >
                                 {{ isMonthLocked ? '\uD83D\uDD13 Lås opp timeark' : '\uD83D\uDD12 Lås timeark' }}
                             </button>
+                            <div class="overflow-menu" ref="overflowMenuRef">
+                                <button class="btn btn-secondary" @click="showOverflowMenu = !showOverflowMenu" title="Eksport og import">
+                                    ⋯
+                                </button>
+                                <div v-if="showOverflowMenu" class="overflow-menu-dropdown">
+                                    <button v-if="!isMonthLocked && consultant.isAdmin" class="overflow-menu-item" @click="openGSheetImport(); showOverflowMenu = false">
+                                        Importer fra G-Sheet
+                                    </button>
+                                    <button class="overflow-menu-item" @click="exportExcel(); showOverflowMenu = false">
+                                        Eksporter Excel
+                                    </button>
+                                    <button class="overflow-menu-item" @click="exportJson(); showOverflowMenu = false">
+                                        Eksporter JSON
+                                    </button>
+                                    <label v-if="!isMonthLocked" class="overflow-menu-item" @click="showOverflowMenu = false">
+                                        Importer JSON
+                                        <input type="file" accept=".json" @change="importJson" hidden>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <TimeGrid
@@ -222,6 +229,7 @@ const App = {
 
         onMounted(async () => {
             applyTheme();
+            document.addEventListener('click', handleClickOutside);
             await checkConsultants();
 
             if (!noConsultants.value) {
@@ -233,6 +241,10 @@ const App = {
             }
 
             loading.value = false;
+        });
+
+        onBeforeUnmount(() => {
+            document.removeEventListener('click', handleClickOutside);
         });
 
         watch([selectedYear, selectedMonth], () => {
@@ -251,6 +263,14 @@ const App = {
 
         const timeGrid = ref(null);
         const showGSheetImport = ref(false);
+        const showOverflowMenu = ref(false);
+        const overflowMenuRef = ref(null);
+
+        const handleClickOutside = (event) => {
+            if (overflowMenuRef.value && !overflowMenuRef.value.contains(event.target)) {
+                showOverflowMenu.value = false;
+            }
+        };
 
         const openGSheetImport = () => {
             showGSheetImport.value = true;
@@ -333,6 +353,8 @@ const App = {
             toggleMonthLock,
             timeGrid,
             showGSheetImport,
+            showOverflowMenu,
+            overflowMenuRef,
             openGSheetImport,
             onGSheetImported,
             exportJson,
