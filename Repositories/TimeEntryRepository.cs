@@ -153,7 +153,7 @@ public class TimeEntryRepository
                     c.LastName,
                     c.EmployerId,
                     COALESCE(SUM(te.Hours), 0.0) AS TotalHours,
-                    COUNT(DISTINCT te.Date) AS DaysWithEntries
+                    COUNT(DISTINCT CASE WHEN strftime('%w', te.Date) NOT IN ('0', '6') THEN te.Date END) AS DaysWithEntries
                 FROM Consultants c
                 LEFT JOIN TimeEntries te ON te.ConsultantId = c.Id
                     AND te.Date >= @StartDate
