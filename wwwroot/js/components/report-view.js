@@ -26,10 +26,10 @@ export default {
                     <div class="report-header">
                         <h2>{{ ip.projectNumber }} {{ ip.name }}</h2>
                         <div class="report-actions">
-                            <button class="btn btn-primary" @click="downloadExcel(ip.id)">
+                            <button class="btn btn-secondary" @click="downloadExcel(ip.id)">
                                 Last ned Excel
                             </button>
-                            <button class="btn btn-secondary" @click="downloadPdf(ip.id)">
+                            <button class="btn btn-success" @click="downloadPdf(ip.id)">
                                 Last ned PDF
                             </button>
                         </div>

@@ -99,6 +99,9 @@ const App = {
                                 <option value="hhmm">Timer som hh:mm</option>
                                 <option value="decimal">Timer som desimaltall</option>
                             </select>
+                            <button v-if="!isMonthLocked && consultant.isAdmin" class="btn btn-secondary" @click="openGSheetImport">
+                                Importer fra G-Sheet
+                            </button>
                             <button v-if="!isMonthLocked" class="btn btn-secondary" @click="exportJson">
                                 Eksporter JSON
                             </button>
@@ -233,6 +236,12 @@ const App = {
 
         const timeGrid = ref(null);
 
+        const openGSheetImport = () => {
+            if (timeGrid.value) {
+                timeGrid.value.openGSheetModal();
+            }
+        };
+
         const exportJson = () => {
             const url = `/api/time-entries/export?consultantId=${consultant.value.id}&year=${selectedYear.value}&month=${selectedMonth.value}`;
             window.location.href = url;
@@ -298,6 +307,7 @@ const App = {
             logout,
             toggleMonthLock,
             timeGrid,
+            openGSheetImport,
             exportJson,
             importJson
         };

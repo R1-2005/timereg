@@ -199,14 +199,14 @@ UNIQUE(ConsultantId, Year, Month). Når en rad finnes er måneden markert som fe
 |-----------|-----|-------------|----------|
 | Login | `login.js` | Innlogging med fornavn + e-post, lagrer bruker i localStorage | `POST /api/login` |
 | Home | `home.js` | Oversikt ansatte i valgt måned, filtrert på innlogget brukers arbeidsgiver, fargekodert utfyllingsgrad, ferdig-status per konsulent | `GET monthly-summary`, `GET monthly-locks/by-month` |
-| TimeGrid | `time-grid.js` | Månedsrutenett for timeregistrering med autolagring, helgmarkering, sletteknapp per rad, JSON eksport/import, valgfri visning (hh:mm/desimal). Støtter `locked`-prop for skrivebeskyttelse | `GET/PUT/DELETE time-entries` |
+| TimeGrid | `time-grid.js` | Månedsrutenett for timeregistrering med autolagring, helgmarkering, sletteknapp per rad, JSON eksport/import, Google Sheets-import (tab-separert copy-paste, kun admin), valgfri visning (hh:mm/desimal). Støtter `locked`-prop for skrivebeskyttelse | `GET/PUT/DELETE time-entries`, `POST time-entries/import` |
 | ReportView | `report-view.js` | Faktureringsgrunnlag per fakturaprosjekt, filtrert på innlogget brukers arbeidsgiver, med seksjonsfordelte timer og Excel/PDF-eksport | `GET reports/monthly`, `GET sections`, `GET jira-projects` |
 | AdminEmployers | `admin-employers.js` | CRUD arbeidsgivere med org.nr., e-postdomene og adresse. Slett deaktivert for arbeidsgivere med konsulenter | `GET/POST/PUT/DELETE employers`, `GET employers/with-consultants` |
 | AdminConsultants | `admin-consultants.js` | CRUD konsulenter med arbeidsgiver-dropdown, admin-flagg, aktiv-status og ansettelsesperiode. E-post valideres dynamisk mot valgt arbeidsgivers domene. Slett deaktivert for konsulenter med timer | `GET/POST/PUT/DELETE consultants`, `GET consultants/with-time-entries`, `GET employers` |
 | AdminProjects | `admin-projects.js` | CRUD Jira-prosjekter med fordelingsnøkler og seksjonsfordeling, JSON eksport/import | `GET/POST/PUT/DELETE jira-projects`, `GET sections`, `GET invoice-projects` |
 | MonthPicker | `month-picker.js` | Gjenbrukbar månedsvelger med forrige/neste-navigasjon | (ingen) |
 
-App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synlig for IsAdmin-brukere med arkfaner (Jira-prosjekter, Konsulenter, Arbeidsgivere). Håndterer månedslås-tilstand og "Marker som ferdig"-knapp i timeregistreringsfanen. Inkluderer dark/light theme toggle (localStorage-persistert).
+App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synlig for IsAdmin-brukere med arkfaner (Jira-prosjekter, Konsulenter, Arbeidsgivere). Håndterer månedslås-tilstand, "Marker som ferdig"-knapp og "Importer fra G-Sheet"-knapp (kun admin) i timeregistreringsfanen. Inkluderer dark/light theme toggle (localStorage-persistert).
 
 ## Forretningsregler
 
