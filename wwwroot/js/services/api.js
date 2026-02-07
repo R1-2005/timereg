@@ -98,7 +98,14 @@ const api = {
     getMonthlyReportExcelUrl: (year, month, invoiceProjectId, employerId) =>
         `/api/reports/monthly/excel?year=${year}&month=${month}&invoiceProjectId=${invoiceProjectId}${employerId ? '&employerId=' + employerId : ''}`,
     getMonthlyReportPdfUrl: (year, month, invoiceProjectId, employerId) =>
-        `/api/reports/monthly/pdf?year=${year}&month=${month}&invoiceProjectId=${invoiceProjectId}${employerId ? '&employerId=' + employerId : ''}`
+        `/api/reports/monthly/pdf?year=${year}&month=${month}&invoiceProjectId=${invoiceProjectId}${employerId ? '&employerId=' + employerId : ''}`,
+
+    // Database backup/restore
+    getDatabaseStatus: () => api.get('/api/database/status'),
+    createBackup: () => api.post('/api/database/backup', {}),
+    getBackups: () => api.get('/api/database/backups'),
+    restoreBackup: (filename) => api.post('/api/database/restore', { filename }),
+    deleteBackup: (filename) => api.delete(`/api/database/backups/${encodeURIComponent(filename)}`)
 };
 
 export default api;

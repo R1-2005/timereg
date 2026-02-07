@@ -8,6 +8,7 @@ import MonthPicker from './components/month-picker.js';
 import TimeGrid from './components/time-grid.js';
 import GSheetImport from './components/gsheet-import.js';
 import ReportView from './components/report-view.js';
+import AdminSystem from './components/admin-system.js';
 
 const { createApp, ref, watch, onMounted, onBeforeUnmount } = Vue;
 
@@ -21,7 +22,8 @@ const App = {
         MonthPicker,
         TimeGrid,
         GSheetImport,
-        ReportView
+        ReportView,
+        AdminSystem
     },
     template: `
         <div v-if="loading" class="loading-container">
@@ -159,10 +161,12 @@ const App = {
                         <li><a href="#" :class="{ active: adminTab === 'prosjekter' }" @click.prevent="adminTab = 'prosjekter'">Jira-prosjekter</a></li>
                         <li><a href="#" :class="{ active: adminTab === 'konsulenter' }" @click.prevent="adminTab = 'konsulenter'">Konsulenter</a></li>
                         <li><a href="#" :class="{ active: adminTab === 'arbeidsgivere' }" @click.prevent="adminTab = 'arbeidsgivere'">Arbeidsgivere</a></li>
+                        <li><a href="#" :class="{ active: adminTab === 'system' }" @click.prevent="adminTab = 'system'">System</a></li>
                     </ul>
                     <AdminProjects v-if="adminTab === 'prosjekter'" />
                     <AdminConsultants v-if="adminTab === 'konsulenter'" />
                     <AdminEmployers v-if="adminTab === 'arbeidsgivere'" />
+                    <AdminSystem v-if="adminTab === 'system'" />
                 </div>
             </div>
         </div>

@@ -27,6 +27,7 @@ builder.Services.AddHttpClient("NagerDate", client =>
     client.Timeout = TimeSpan.FromSeconds(5);
 });
 builder.Services.AddSingleton<HolidayService>();
+builder.Services.AddSingleton<DatabaseBackupService>();
 
 var app = builder.Build();
 
@@ -539,4 +540,56 @@ reports.MapGet("/monthly/pdf", async (int year, int month, int invoiceProjectId,
     return Results.File(pdfBytes, "application/pdf", fileName);
 });
 
+// Database backup/restore
+var database = api.MapGroup("/database");
+
+database.MapGet("/status", async (DatabaseBackupService backupService) =>
+    Results.Ok(await backupService.GetStatusAsync()));
+
+database.MapPost("/backup", async (DatabaseBackupService backupService) =>
+    Results.Ok(await backupService.CreateBackupAsync()));
+
+database.MapGet("/backups", async (DatabaseBackupService backupService) =>
+    Results.Ok(await backupService.GetBackupsAsync()));
+
+database.MapPost("/restore", async (RestoreRequest request, DatabaseBackupService backupService) =>
+{
+    try
+    {
+        await backupService.RestoreAsync(request.Filename);
+        return Results.Ok(new { message = "Database gjenopprettet." });
+    }
+    catch (FileNotFoundException)
+    {
+        return Results.NotFound(new { error = "Backup-filen finnes ikke." });
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+database.MapDelete("/backups/{filename}", (string filename, DatabaseBackupService backupService) =>
+{
+    try
+    {
+        backupService.DeleteBackup(filename);
+        return Results.NoContent();
+    }
+    catch (FileNotFoundException)
+    {
+        return Results.NotFound(new { error = "Backup-filen finnes ikke." });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
 app.Run();
+
+record RestoreRequest(string Filename);
