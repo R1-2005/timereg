@@ -1075,15 +1075,10 @@ tfoot .sum-row td {
 /* Progress badge */
 .progress-badge {
     position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 56px;
-    height: 24px;
+    width: 64px;
+    height: 8px;
     border-radius: 20px;
     overflow: hidden;
-    font-size: 12px;
-    font-weight: 600;
 }
 
 .progress-badge-fill {
@@ -1095,38 +1090,26 @@ tfoot .sum-row td {
     transition: width 0.3s ease;
 }
 
-.progress-badge-text {
-    position: relative;
-    z-index: 1;
-    padding: 0 10px;
-}
-
 .progress-badge.completion-low {
     background: var(--color-status-no-bg);
-    color: var(--color-completion-low);
 }
 
 .progress-badge.completion-low .progress-badge-fill {
     background: var(--color-completion-low);
-    opacity: 0.15;
 }
 
 .progress-badge.completion-medium {
     background: var(--color-warning-bg);
-    color: var(--color-completion-medium);
 }
 
 .progress-badge.completion-medium .progress-badge-fill {
     background: var(--color-completion-medium);
-    opacity: 0.15;
 }
 
 .progress-badge.completion-high {
     background: var(--color-status-yes-bg);
-    color: var(--color-completion-high);
 }
 
 .progress-badge.completion-high .progress-badge-fill {
     background: var(--color-completion-high);
-    opacity: 0.15;
 }

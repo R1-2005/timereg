@@ -41,7 +41,6 @@ export default {
                             <td>
                                 <div class="progress-badge" :class="getCompletionClass(consultant.completionPercent)">
                                     <div class="progress-badge-fill" :style="{ width: Math.min(100, consultant.completionPercent) + '%' }"></div>
-                                    <span class="progress-badge-text">{{ consultant.completionPercent }}%</span>
                                 </div>
                             </td>
                             <td v-for="ip in invoiceProjects" :key="ip.id" class="text-right">
