@@ -30,10 +30,10 @@ export default {
                             <th>Konsulent</th>
                             <th>Status</th>
                             <th class="text-right">Utfylt</th>
-                            <th class="text-right">Timer totalt</th>
                             <th v-for="ip in invoiceProjects" :key="ip.id" class="text-right">
                                 {{ ip.shortName || (ip.projectNumber + ' ' + ip.name) }}
                             </th>
+                            <th class="text-right">Timer totalt</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -47,10 +47,10 @@ export default {
                                     {{ consultant.completionPercent }}%
                                 </span>
                             </td>
-                            <td class="text-right">{{ formatHours(consultant.totalHours) }}</td>
                             <td v-for="ip in invoiceProjects" :key="ip.id" class="text-right">
                                 {{ formatHours(getDistributedHours(consultant.id, ip.id)) }}
                             </td>
+                            <td class="text-right">{{ formatHours(consultant.totalHours) }}</td>
                         </tr>
                     </tbody>
                     <tfoot>
@@ -58,10 +58,10 @@ export default {
                             <td><strong>Sum</strong></td>
                             <td></td>
                             <td></td>
-                            <td class="text-right"><strong>{{ formatHours(totalHours) }}</strong></td>
                             <td v-for="ip in invoiceProjects" :key="ip.id" class="text-right">
                                 <strong>{{ formatHours(getInvoiceProjectTotal(ip.id)) }}</strong>
                             </td>
+                            <td class="text-right"><strong>{{ formatHours(totalHours) }}</strong></td>
                         </tr>
                     </tfoot>
                 </table>
