@@ -1,5 +1,6 @@
 using Dapper;
 using timereg.Data;
+using timereg.Helpers;
 
 namespace timereg.Repositories;
 
@@ -15,8 +16,7 @@ public class ReportRepository
     public async Task<IEnumerable<MonthlyReportRow>> GetMonthlyReportAsync(int year, int month)
     {
         using var connection = _connectionFactory.CreateConnection();
-        var startDate = new DateOnly(year, month, 1).ToString("yyyy-MM-dd");
-        var endDate = new DateOnly(year, month, DateTime.DaysInMonth(year, month)).ToString("yyyy-MM-dd");
+        var (startDate, endDate) = DateRange.ForMonth(year, month);
 
         return await connection.QueryAsync<MonthlyReportRow>(
             """

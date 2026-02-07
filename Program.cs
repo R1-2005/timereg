@@ -1,10 +1,9 @@
-using ClosedXML.Excel;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using timereg.Data;
+using timereg.Helpers;
 using timereg.Models;
 using timereg.Repositories;
+using timereg.Services;
 
 QuestPDF.Settings.License = LicenseType.Community;
 
@@ -21,6 +20,7 @@ builder.Services.AddScoped<TimeEntryRepository>();
 builder.Services.AddScoped<ReportRepository>();
 builder.Services.AddScoped<SectionRepository>();
 builder.Services.AddScoped<MonthlyLockRepository>();
+builder.Services.AddScoped<ReportService>();
 
 var app = builder.Build();
 
@@ -33,6 +33,34 @@ using (var scope = app.Services.CreateScope())
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
+
+// Validation helpers
+static IResult? ValidateEmployer(Employer employer)
+{
+    if (string.IsNullOrWhiteSpace(employer.Name))
+        return Results.BadRequest(new { error = "Navn er påkrevd." });
+
+    if (string.IsNullOrWhiteSpace(employer.OrgNumber) || !System.Text.RegularExpressions.Regex.IsMatch(employer.OrgNumber, @"^\d{9}$"))
+        return Results.BadRequest(new { error = "Organisasjonsnummer må være 9 siffer." });
+
+    if (string.IsNullOrWhiteSpace(employer.EmailDomain))
+        return Results.BadRequest(new { error = "E-postdomene er påkrevd." });
+
+    return null;
+}
+
+static IResult? ValidateDistributionKeys(JiraProjectCreateDto dto)
+{
+    var sum = dto.DistributionKeys.Sum(dk => dk.Percentage);
+    if (sum != 100)
+        return Results.BadRequest(new { error = $"Distribution key percentages must sum to 100, got {sum}" });
+
+    var sectionSum = dto.SectionDistributionKeys.Sum(sdk => sdk.Percentage);
+    if (sectionSum != 100)
+        return Results.BadRequest(new { error = $"Section distribution key percentages must sum to 100, got {sectionSum}" });
+
+    return null;
+}
 
 // API Routes
 var api = app.MapGroup("/api");
@@ -125,14 +153,8 @@ employers.MapGet("/{id:int}", async (int id, EmployerRepository repo) =>
 
 employers.MapPost("/", async (Employer employer, EmployerRepository repo) =>
 {
-    if (string.IsNullOrWhiteSpace(employer.Name))
-        return Results.BadRequest(new { error = "Navn er påkrevd." });
-
-    if (string.IsNullOrWhiteSpace(employer.OrgNumber) || !System.Text.RegularExpressions.Regex.IsMatch(employer.OrgNumber, @"^\d{9}$"))
-        return Results.BadRequest(new { error = "Organisasjonsnummer må være 9 siffer." });
-
-    if (string.IsNullOrWhiteSpace(employer.EmailDomain))
-        return Results.BadRequest(new { error = "E-postdomene er påkrevd." });
+    var validationError = ValidateEmployer(employer);
+    if (validationError is not null) return validationError;
 
     employer.EmailDomain = employer.EmailDomain.TrimStart('@').ToLower();
 
@@ -142,14 +164,8 @@ employers.MapPost("/", async (Employer employer, EmployerRepository repo) =>
 
 employers.MapPut("/{id:int}", async (int id, Employer employer, EmployerRepository repo) =>
 {
-    if (string.IsNullOrWhiteSpace(employer.Name))
-        return Results.BadRequest(new { error = "Navn er påkrevd." });
-
-    if (string.IsNullOrWhiteSpace(employer.OrgNumber) || !System.Text.RegularExpressions.Regex.IsMatch(employer.OrgNumber, @"^\d{9}$"))
-        return Results.BadRequest(new { error = "Organisasjonsnummer må være 9 siffer." });
-
-    if (string.IsNullOrWhiteSpace(employer.EmailDomain))
-        return Results.BadRequest(new { error = "E-postdomene er påkrevd." });
+    var validationError = ValidateEmployer(employer);
+    if (validationError is not null) return validationError;
 
     employer.EmailDomain = employer.EmailDomain.TrimStart('@').ToLower();
     employer.Id = id;
@@ -189,13 +205,8 @@ jiraProjects.MapGet("/{id:int}", async (int id, JiraProjectRepository repo) =>
 
 jiraProjects.MapPost("/", async (JiraProjectCreateDto dto, JiraProjectRepository repo) =>
 {
-    var sum = dto.DistributionKeys.Sum(dk => dk.Percentage);
-    if (sum != 100)
-        return Results.BadRequest(new { error = $"Distribution key percentages must sum to 100, got {sum}" });
-
-    var sectionSum = dto.SectionDistributionKeys.Sum(sdk => sdk.Percentage);
-    if (sectionSum != 100)
-        return Results.BadRequest(new { error = $"Section distribution key percentages must sum to 100, got {sectionSum}" });
+    var validationError = ValidateDistributionKeys(dto);
+    if (validationError is not null) return validationError;
 
     var created = await repo.CreateAsync(dto);
     return Results.Created($"/api/jira-projects/{created.Id}", created);
@@ -203,13 +214,8 @@ jiraProjects.MapPost("/", async (JiraProjectCreateDto dto, JiraProjectRepository
 
 jiraProjects.MapPut("/{id:int}", async (int id, JiraProjectCreateDto dto, JiraProjectRepository repo) =>
 {
-    var sum = dto.DistributionKeys.Sum(dk => dk.Percentage);
-    if (sum != 100)
-        return Results.BadRequest(new { error = $"Distribution key percentages must sum to 100, got {sum}" });
-
-    var sectionSum = dto.SectionDistributionKeys.Sum(sdk => sdk.Percentage);
-    if (sectionSum != 100)
-        return Results.BadRequest(new { error = $"Section distribution key percentages must sum to 100, got {sectionSum}" });
+    var validationError = ValidateDistributionKeys(dto);
+    if (validationError is not null) return validationError;
 
     var updated = await repo.UpdateAsync(id, dto);
     return updated is not null ? Results.Ok(updated) : Results.NotFound();
@@ -252,17 +258,15 @@ jiraProjects.MapPost("/import", async (JiraProjectImportDto importData, JiraProj
 
     foreach (var project in importData.Projects)
     {
-        var sum = project.DistributionKeys.Sum(dk => dk.Percentage);
-        if (sum != 100)
+        var validationError = ValidateDistributionKeys(project);
+        if (validationError is not null)
         {
-            errors.Add($"{project.Key}: Fordelingsnøkler summerer til {sum}, ikke 100");
-            continue;
-        }
-
-        var sectionSum = project.SectionDistributionKeys.Sum(sdk => sdk.Percentage);
-        if (sectionSum != 100)
-        {
-            errors.Add($"{project.Key}: Seksjonsfordeling summerer til {sectionSum}, ikke 100");
+            var distSum = project.DistributionKeys.Sum(dk => dk.Percentage);
+            var secSum = project.SectionDistributionKeys.Sum(sdk => sdk.Percentage);
+            if (distSum != 100)
+                errors.Add($"{project.Key}: Fordelingsnøkler summerer til {distSum}, ikke 100");
+            else
+                errors.Add($"{project.Key}: Seksjonsfordeling summerer til {secSum}, ikke 100");
             continue;
         }
 
@@ -333,11 +337,10 @@ timeEntries.MapPut("/", async (TimeEntryUpsertDto dto, TimeEntryRepository timeR
         return Results.BadRequest(new { error = "Måneden er markert som ferdig. Angre ferdig-markeringen for å gjøre endringer." });
 
     // Extract project key from issue key (e.g., "AFP" from "AFP-123")
-    var dashIndex = dto.JiraIssueKey.LastIndexOf('-');
-    if (dashIndex <= 0)
+    var projectKey = JiraIssueKeyParser.ExtractProjectKey(dto.JiraIssueKey);
+    if (projectKey is null)
         return Results.BadRequest(new { error = "Invalid Jira issue key format. Expected format: PROJECT-123" });
 
-    var projectKey = dto.JiraIssueKey[..dashIndex];
     var jiraProject = await jiraRepo.GetByKeyAsync(projectKey);
 
     if (jiraProject is null)
@@ -417,14 +420,13 @@ timeEntries.MapPost("/import", async (TimeEntryImportDto importData, TimeEntryRe
 
     foreach (var entry in importData.Entries)
     {
-        var dashIndex = entry.JiraIssueKey.LastIndexOf('-');
-        if (dashIndex <= 0)
+        var projectKey = JiraIssueKeyParser.ExtractProjectKey(entry.JiraIssueKey);
+        if (projectKey is null)
         {
             errors.Add($"Ugyldig format: {entry.JiraIssueKey}");
             continue;
         }
 
-        var projectKey = entry.JiraIssueKey[..dashIndex];
         var jiraProject = await jiraRepo.GetByKeyAsync(projectKey);
 
         if (jiraProject is null)
@@ -459,7 +461,7 @@ var reports = api.MapGroup("/reports");
 reports.MapGet("/monthly", async (int year, int month, ReportRepository repo) =>
     Results.Ok(await repo.GetMonthlyReportAsync(year, month)));
 
-reports.MapGet("/monthly/excel", async (int year, int month, int invoiceProjectId, int? employerId, ReportRepository repo, InvoiceProjectRepository ipRepo, SectionRepository sectionRepo, JiraProjectRepository jiraRepo) =>
+reports.MapGet("/monthly/excel", async (int year, int month, int invoiceProjectId, int? employerId, ReportRepository repo, InvoiceProjectRepository ipRepo, SectionRepository sectionRepo, JiraProjectRepository jiraRepo, ReportService reportService) =>
 {
     var data = await repo.GetMonthlyReportAsync(year, month);
     var projectData = data.Where(r => r.InvoiceProjectId == invoiceProjectId).ToList();
@@ -472,134 +474,15 @@ reports.MapGet("/monthly/excel", async (int year, int month, int invoiceProjectI
 
     var sections = (await sectionRepo.GetAllAsync()).ToList();
     var jiraProjectDtos = (await jiraRepo.GetAllWithDistributionKeysAsync()).ToList();
-    var sectionKeyLookup = jiraProjectDtos.ToDictionary(
-        jp => jp.Key,
-        jp => jp.SectionDistributionKeys.ToDictionary(sdk => sdk.SectionId, sdk => (double)sdk.Percentage));
 
-    double GetSectionHours(string jiraIssueKey, int sectionId, double hours)
-    {
-        var dashIndex = jiraIssueKey.LastIndexOf('-');
-        if (dashIndex <= 0) return 0;
-        var projectKey = jiraIssueKey[..dashIndex];
-        if (sectionKeyLookup.TryGetValue(projectKey, out var sectionPcts) && sectionPcts.TryGetValue(sectionId, out var pct))
-            return hours * pct / 100.0;
-        return 0;
-    }
-
-    var timerCol = 3 + sections.Count;
-
-    using var workbook = new XLWorkbook();
-    var worksheet = workbook.Worksheets.Add("Fakturering");
-
-    // Header
-    var monthNames = new[] { "", "Januar", "Februar", "Mars", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Desember" };
-    worksheet.Cell(1, 1).Value = $"{invoiceProject.ProjectNumber} {invoiceProject.Name}";
-    worksheet.Cell(1, 1).Style.Font.Bold = true;
-    worksheet.Cell(1, 1).Style.Font.FontSize = 14;
-    worksheet.Cell(2, 1).Value = $"{monthNames[month]} {year}";
-
-    // Column headers
-    worksheet.Cell(4, 1).Value = "Konsulent";
-    worksheet.Cell(4, 2).Value = "Jira-sak";
-    for (int i = 0; i < sections.Count; i++)
-        worksheet.Cell(4, 3 + i).Value = sections[i].ShortName ?? sections[i].Name;
-    worksheet.Cell(4, timerCol).Value = "Timer totalt";
-    worksheet.Range(4, 1, 4, timerCol).Style.Font.Bold = true;
-    worksheet.Range(4, 1, 4, timerCol).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-
-    var row = 5;
-    var currentConsultant = "";
-    var consultantTotal = 0.0;
-    var grandTotal = 0.0;
-    var consultantSectionTotals = sections.ToDictionary(s => s.Id, _ => 0.0);
-    var grandSectionTotals = sections.ToDictionary(s => s.Id, _ => 0.0);
-
-    foreach (var entry in projectData)
-    {
-        var consultantName = $"{entry.FirstName} {entry.LastName}";
-
-        if (currentConsultant != "" && currentConsultant != consultantName)
-        {
-            // Sum row for previous consultant
-            worksheet.Cell(row, 1).Value = $"Sum {currentConsultant}";
-            worksheet.Cell(row, 1).Style.Font.Italic = true;
-            for (int i = 0; i < sections.Count; i++)
-            {
-                worksheet.Cell(row, 3 + i).Value = consultantSectionTotals[sections[i].Id];
-                worksheet.Cell(row, 3 + i).Style.Font.Italic = true;
-                worksheet.Cell(row, 3 + i).Style.NumberFormat.Format = "0.00";
-            }
-            worksheet.Cell(row, timerCol).Value = consultantTotal;
-            worksheet.Cell(row, timerCol).Style.Font.Italic = true;
-            worksheet.Cell(row, timerCol).Style.NumberFormat.Format = "0.00";
-            row++;
-            row++; // Empty row
-            consultantTotal = 0;
-            foreach (var s in sections) consultantSectionTotals[s.Id] = 0;
-        }
-
-        currentConsultant = consultantName;
-        worksheet.Cell(row, 1).Value = consultantName;
-        worksheet.Cell(row, 2).Value = entry.JiraIssueKey;
-        for (int i = 0; i < sections.Count; i++)
-        {
-            var sectionHours = GetSectionHours(entry.JiraIssueKey, sections[i].Id, entry.Hours);
-            worksheet.Cell(row, 3 + i).Value = sectionHours;
-            worksheet.Cell(row, 3 + i).Style.NumberFormat.Format = "0.00";
-            consultantSectionTotals[sections[i].Id] += sectionHours;
-            grandSectionTotals[sections[i].Id] += sectionHours;
-        }
-        worksheet.Cell(row, timerCol).Value = entry.Hours;
-        worksheet.Cell(row, timerCol).Style.NumberFormat.Format = "0.00";
-
-        consultantTotal += entry.Hours;
-        grandTotal += entry.Hours;
-        row++;
-    }
-
-    // Last consultant sum
-    if (currentConsultant != "")
-    {
-        worksheet.Cell(row, 1).Value = $"Sum {currentConsultant}";
-        worksheet.Cell(row, 1).Style.Font.Italic = true;
-        for (int i = 0; i < sections.Count; i++)
-        {
-            worksheet.Cell(row, 3 + i).Value = consultantSectionTotals[sections[i].Id];
-            worksheet.Cell(row, 3 + i).Style.Font.Italic = true;
-            worksheet.Cell(row, 3 + i).Style.NumberFormat.Format = "0.00";
-        }
-        worksheet.Cell(row, timerCol).Value = consultantTotal;
-        worksheet.Cell(row, timerCol).Style.Font.Italic = true;
-        worksheet.Cell(row, timerCol).Style.NumberFormat.Format = "0.00";
-        row++;
-    }
-
-    // Grand total
-    row++;
-    worksheet.Cell(row, 1).Value = "TOTALT";
-    worksheet.Cell(row, 1).Style.Font.Bold = true;
-    for (int i = 0; i < sections.Count; i++)
-    {
-        worksheet.Cell(row, 3 + i).Value = grandSectionTotals[sections[i].Id];
-        worksheet.Cell(row, 3 + i).Style.Font.Bold = true;
-        worksheet.Cell(row, 3 + i).Style.NumberFormat.Format = "0.00";
-    }
-    worksheet.Cell(row, timerCol).Value = grandTotal;
-    worksheet.Cell(row, timerCol).Style.Font.Bold = true;
-    worksheet.Cell(row, timerCol).Style.NumberFormat.Format = "0.00";
-
-    worksheet.Columns().AdjustToContents();
-
-    using var stream = new MemoryStream();
-    workbook.SaveAs(stream);
-    stream.Position = 0;
+    var excelBytes = reportService.GenerateExcel(invoiceProject, projectData, sections, jiraProjectDtos, year, month);
 
     var shortName = (invoiceProject.ShortName ?? invoiceProject.Name).Replace(" ", "_");
-    var fileName = $"{shortName}_{monthNames[month]}_{year}.xlsx";
-    return Results.File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    var fileName = $"{shortName}_{MonthNames.Norwegian[month]}_{year}.xlsx";
+    return Results.File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
 });
 
-reports.MapGet("/monthly/pdf", async (int year, int month, int invoiceProjectId, int? employerId, ReportRepository repo, InvoiceProjectRepository ipRepo, SectionRepository sectionRepo, JiraProjectRepository jiraRepo, EmployerRepository employerRepo) =>
+reports.MapGet("/monthly/pdf", async (int year, int month, int invoiceProjectId, int? employerId, ReportRepository repo, InvoiceProjectRepository ipRepo, SectionRepository sectionRepo, JiraProjectRepository jiraRepo, EmployerRepository employerRepo, ReportService reportService) =>
 {
     var data = await repo.GetMonthlyReportAsync(year, month);
     var projectData = data.Where(r => r.InvoiceProjectId == invoiceProjectId).ToList();
@@ -619,142 +502,11 @@ reports.MapGet("/monthly/pdf", async (int year, int month, int invoiceProjectId,
 
     var sections = (await sectionRepo.GetAllAsync()).ToList();
     var jiraProjectDtos = (await jiraRepo.GetAllWithDistributionKeysAsync()).ToList();
-    var sectionKeyLookup = jiraProjectDtos.ToDictionary(
-        jp => jp.Key,
-        jp => jp.SectionDistributionKeys.ToDictionary(sdk => sdk.SectionId, sdk => (double)sdk.Percentage));
 
-    double GetSectionHours(string jiraIssueKey, int sectionId, double hours)
-    {
-        var dashIndex = jiraIssueKey.LastIndexOf('-');
-        if (dashIndex <= 0) return 0;
-        var projectKey = jiraIssueKey[..dashIndex];
-        if (sectionKeyLookup.TryGetValue(projectKey, out var sectionPcts) && sectionPcts.TryGetValue(sectionId, out var pct))
-            return hours * pct / 100.0;
-        return 0;
-    }
+    var pdfBytes = reportService.GeneratePdf(invoiceProject, employerName, projectData, sections, jiraProjectDtos, year, month);
 
-    var monthNames = new[] { "", "Januar", "Februar", "Mars", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Desember" };
-
-    var document = Document.Create(container =>
-    {
-        container.Page(page =>
-        {
-            page.Size(PageSizes.A4);
-            page.Margin(40);
-            page.DefaultTextStyle(x => x.FontSize(10));
-
-            page.Header().Column(col =>
-            {
-                col.Item().Row(row =>
-                {
-                    row.RelativeItem().Text($"{invoiceProject.ProjectNumber} {invoiceProject.Name}")
-                        .FontSize(16).Bold();
-                    if (!string.IsNullOrEmpty(employerName))
-                        row.RelativeItem().AlignRight().Text(employerName)
-                            .FontSize(16).Bold();
-                });
-                col.Item().Text($"{monthNames[month]} {year}")
-                    .FontSize(12);
-                col.Item().PaddingBottom(20);
-            });
-
-            page.Content().Table(table =>
-            {
-                table.ColumnsDefinition(columns =>
-                {
-                    columns.RelativeColumn(3); // Konsulent
-                    columns.RelativeColumn(2); // Jira-sak
-                    foreach (var _ in sections)
-                        columns.RelativeColumn(1); // Section columns
-                    columns.RelativeColumn(1); // Timer
-                });
-
-                // Header
-                table.Header(header =>
-                {
-                    header.Cell().BorderBottom(1).Padding(5).Text("Konsulent").Bold();
-                    header.Cell().BorderBottom(1).Padding(5).Text("Jira-sak").Bold();
-                    foreach (var s in sections)
-                        header.Cell().BorderBottom(1).Padding(5).AlignRight().Text(s.ShortName ?? s.Name).Bold();
-                    header.Cell().BorderBottom(1).Padding(5).AlignRight().Text("Timer totalt").Bold();
-                });
-
-                var currentConsultant = "";
-                var consultantTotal = 0.0;
-                var grandTotal = 0.0;
-                var consultantSectionTotals = sections.ToDictionary(s => s.Id, _ => 0.0);
-                var grandSectionTotals = sections.ToDictionary(s => s.Id, _ => 0.0);
-
-                foreach (var entry in projectData)
-                {
-                    var consultantName = $"{entry.FirstName} {entry.LastName}";
-
-                    if (currentConsultant != "" && currentConsultant != consultantName)
-                    {
-                        // Sum row for previous consultant
-                        table.Cell().Padding(5).Text($"Sum {currentConsultant}").Italic();
-                        table.Cell().Padding(5).Text("");
-                        foreach (var s in sections)
-                            table.Cell().Padding(5).AlignRight().Text(consultantSectionTotals[s.Id].ToString("0.00")).Italic();
-                        table.Cell().Padding(5).AlignRight().Text(consultantTotal.ToString("0.00")).Italic();
-
-                        // Empty row
-                        table.Cell().Padding(5).Text("");
-                        table.Cell().Padding(5).Text("");
-                        foreach (var _ in sections)
-                            table.Cell().Padding(5).Text("");
-                        table.Cell().Padding(5).Text("");
-
-                        consultantTotal = 0;
-                        foreach (var s in sections) consultantSectionTotals[s.Id] = 0;
-                    }
-
-                    currentConsultant = consultantName;
-                    table.Cell().Padding(5).Text(consultantName);
-                    table.Cell().Padding(5).Text(entry.JiraIssueKey);
-                    foreach (var s in sections)
-                    {
-                        var sectionHours = GetSectionHours(entry.JiraIssueKey, s.Id, entry.Hours);
-                        table.Cell().Padding(5).AlignRight().Text(sectionHours.ToString("0.00"));
-                        consultantSectionTotals[s.Id] += sectionHours;
-                        grandSectionTotals[s.Id] += sectionHours;
-                    }
-                    table.Cell().Padding(5).AlignRight().Text(entry.Hours.ToString("0.00"));
-
-                    consultantTotal += entry.Hours;
-                    grandTotal += entry.Hours;
-                }
-
-                // Last consultant sum
-                if (currentConsultant != "")
-                {
-                    table.Cell().Padding(5).Text($"Sum {currentConsultant}").Italic();
-                    table.Cell().Padding(5).Text("");
-                    foreach (var s in sections)
-                        table.Cell().Padding(5).AlignRight().Text(consultantSectionTotals[s.Id].ToString("0.00")).Italic();
-                    table.Cell().Padding(5).AlignRight().Text(consultantTotal.ToString("0.00")).Italic();
-                }
-
-                // Empty row before grand total
-                table.Cell().Padding(5).Text("");
-                table.Cell().Padding(5).Text("");
-                foreach (var _ in sections)
-                    table.Cell().Padding(5).Text("");
-                table.Cell().Padding(5).Text("");
-
-                // Grand total
-                table.Cell().BorderTop(1).Padding(5).Text("TOTALT").Bold();
-                table.Cell().BorderTop(1).Padding(5).Text("");
-                foreach (var s in sections)
-                    table.Cell().BorderTop(1).Padding(5).AlignRight().Text(grandSectionTotals[s.Id].ToString("0.00")).Bold();
-                table.Cell().BorderTop(1).Padding(5).AlignRight().Text(grandTotal.ToString("0.00")).Bold();
-            });
-        });
-    });
-
-    var pdfBytes = document.GeneratePdf();
     var shortName = (invoiceProject.ShortName ?? invoiceProject.Name).Replace(" ", "_");
-    var fileName = $"{shortName}_{monthNames[month]}_{year}.pdf";
+    var fileName = $"{shortName}_{MonthNames.Norwegian[month]}_{year}.pdf";
     return Results.File(pdfBytes, "application/pdf", fileName);
 });
 

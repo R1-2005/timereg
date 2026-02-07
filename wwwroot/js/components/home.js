@@ -1,5 +1,6 @@
 import api from '../services/api.js';
 import MonthPicker from './month-picker.js';
+import { MONTH_NAMES, formatDistribution } from '../utils/formatting.js';
 
 export default {
     name: 'Home',
@@ -83,9 +84,7 @@ export default {
     },
     computed: {
         monthName() {
-            const names = ['', 'Januar', 'Februar', 'Mars', 'April', 'Mai', 'Juni',
-                'Juli', 'August', 'September', 'Oktober', 'November', 'Desember'];
-            return names[this.month];
+            return MONTH_NAMES[this.month - 1];
         },
         workDaysInMonth() {
             const daysInMonth = new Date(this.year, this.month, 0).getDate();
@@ -153,7 +152,7 @@ export default {
         },
         formatHours(hours) {
             if (!hours || hours === 0) return '-';
-            return hours.toFixed(2).replace('.', ',');
+            return formatDistribution(hours);
         },
         getDistributedHours(consultantId, invoiceProjectId) {
             const consultant = this.consultants.find(c => c.id === consultantId);

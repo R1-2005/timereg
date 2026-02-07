@@ -1,3 +1,5 @@
+import { MONTH_NAMES } from '../utils/formatting.js';
+
 export default {
     name: 'MonthPicker',
     template: `
@@ -22,11 +24,7 @@ export default {
     emits: ['update:year', 'update:month'],
     computed: {
         monthName() {
-            const names = [
-                'Januar', 'Februar', 'Mars', 'April', 'Mai', 'Juni',
-                'Juli', 'August', 'September', 'Oktober', 'November', 'Desember'
-            ];
-            return names[this.month - 1];
+            return MONTH_NAMES[this.month - 1];
         }
     },
     methods: {

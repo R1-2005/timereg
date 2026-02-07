@@ -1,5 +1,6 @@
 using Dapper;
 using timereg.Data;
+using timereg.Helpers;
 using timereg.Models;
 
 namespace timereg.Repositories;
@@ -17,8 +18,7 @@ public class TimeEntryRepository
     {
         using var connection = _connectionFactory.CreateConnection();
 
-        var startDate = new DateOnly(year, month, 1).ToString("yyyy-MM-dd");
-        var endDate = new DateOnly(year, month, DateTime.DaysInMonth(year, month)).ToString("yyyy-MM-dd");
+        var (startDate, endDate) = DateRange.ForMonth(year, month);
 
         var results = await connection.QueryAsync<TimeEntryRow>(
             """
@@ -111,8 +111,7 @@ public class TimeEntryRepository
     public async Task<int> DeleteByConsultantAndIssueAsync(int consultantId, string jiraIssueKey, int year, int month)
     {
         using var connection = _connectionFactory.CreateConnection();
-        var startDate = new DateOnly(year, month, 1).ToString("yyyy-MM-dd");
-        var endDate = new DateOnly(year, month, DateTime.DaysInMonth(year, month)).ToString("yyyy-MM-dd");
+        var (startDate, endDate) = DateRange.ForMonth(year, month);
 
         var rowsAffected = await connection.ExecuteAsync(
             """
@@ -128,8 +127,7 @@ public class TimeEntryRepository
     public async Task<int> DeleteByConsultantAndMonthAsync(int consultantId, int year, int month)
     {
         using var connection = _connectionFactory.CreateConnection();
-        var startDate = new DateOnly(year, month, 1).ToString("yyyy-MM-dd");
-        var endDate = new DateOnly(year, month, DateTime.DaysInMonth(year, month)).ToString("yyyy-MM-dd");
+        var (startDate, endDate) = DateRange.ForMonth(year, month);
 
         var rowsAffected = await connection.ExecuteAsync(
             """
@@ -144,8 +142,7 @@ public class TimeEntryRepository
     public async Task<IEnumerable<MonthSummaryRow>> GetMonthlySummaryAsync(int year, int month)
     {
         using var connection = _connectionFactory.CreateConnection();
-        var startDate = new DateOnly(year, month, 1).ToString("yyyy-MM-dd");
-        var endDate = new DateOnly(year, month, DateTime.DaysInMonth(year, month)).ToString("yyyy-MM-dd");
+        var (startDate, endDate) = DateRange.ForMonth(year, month);
 
         return await connection.QueryAsync<MonthSummaryRow>(
             """

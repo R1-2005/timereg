@@ -26,28 +26,9 @@ public class JiraProjectRepository
         var sectionDistributionKeys = (await connection.QueryAsync<SectionDistributionKey>(
             "SELECT * FROM SectionDistributionKeys")).ToList();
 
-        return jiraProjects.Select(jp => new JiraProjectDto
-        {
-            Id = jp.Id,
-            Key = jp.Key,
-            Name = jp.Name,
-            DistributionKeys = distributionKeys
-                .Where(dk => dk.JiraProjectId == jp.Id)
-                .Select(dk => new DistributionKeyDto
-                {
-                    InvoiceProjectId = dk.InvoiceProjectId,
-                    Percentage = dk.Percentage
-                })
-                .ToList(),
-            SectionDistributionKeys = sectionDistributionKeys
-                .Where(sdk => sdk.JiraProjectId == jp.Id)
-                .Select(sdk => new SectionDistributionKeyDto
-                {
-                    SectionId = sdk.SectionId,
-                    Percentage = sdk.Percentage
-                })
-                .ToList()
-        });
+        return jiraProjects.Select(jp => MapToDto(jp,
+            distributionKeys.Where(dk => dk.JiraProjectId == jp.Id),
+            sectionDistributionKeys.Where(sdk => sdk.JiraProjectId == jp.Id)));
     }
 
     public async Task<JiraProjectDto?> GetByIdWithDistributionKeysAsync(int id)
@@ -68,19 +49,27 @@ public class JiraProjectRepository
             "SELECT * FROM SectionDistributionKeys WHERE JiraProjectId = @JiraProjectId",
             new { JiraProjectId = id });
 
+        return MapToDto(jiraProject, distributionKeys, sectionDistributionKeys);
+    }
+
+    private static JiraProjectDto MapToDto(
+        JiraProject project,
+        IEnumerable<DistributionKey> distKeys,
+        IEnumerable<SectionDistributionKey> sectionKeys)
+    {
         return new JiraProjectDto
         {
-            Id = jiraProject.Id,
-            Key = jiraProject.Key,
-            Name = jiraProject.Name,
-            DistributionKeys = distributionKeys
+            Id = project.Id,
+            Key = project.Key,
+            Name = project.Name,
+            DistributionKeys = distKeys
                 .Select(dk => new DistributionKeyDto
                 {
                     InvoiceProjectId = dk.InvoiceProjectId,
                     Percentage = dk.Percentage
                 })
                 .ToList(),
-            SectionDistributionKeys = sectionDistributionKeys
+            SectionDistributionKeys = sectionKeys
                 .Select(sdk => new SectionDistributionKeyDto
                 {
                     SectionId = sdk.SectionId,

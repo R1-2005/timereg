@@ -1,5 +1,6 @@
 import api from '../services/api.js';
 import MonthPicker from './month-picker.js';
+import { formatDistribution } from '../utils/formatting.js';
 
 export default {
     name: 'ReportView',
@@ -119,7 +120,7 @@ export default {
         },
         formatHours(hours) {
             if (!hours || hours === 0) return '0,00';
-            return hours.toFixed(2).replace('.', ',');
+            return formatDistribution(hours);
         },
         getSectionKeys(jiraIssueKey) {
             const dashIndex = jiraIssueKey.lastIndexOf('-');

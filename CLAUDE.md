@@ -199,7 +199,8 @@ UNIQUE(ConsultantId, Year, Month). Når en rad finnes er måneden markert som fe
 |-----------|-----|-------------|----------|
 | Login | `login.js` | Innlogging med fornavn + e-post, lagrer bruker i localStorage | `POST /api/login` |
 | Home | `home.js` | Oversikt ansatte i valgt måned, filtrert på innlogget brukers arbeidsgiver, fargekodert utfyllingsgrad, ferdig-status per konsulent | `GET monthly-summary`, `GET monthly-locks/by-month` |
-| TimeGrid | `time-grid.js` | Månedsrutenett for timeregistrering med autolagring, helgmarkering, sletteknapp per rad, JSON eksport/import, Google Sheets-import (tab-separert copy-paste, kun admin), valgfri visning (hh:mm/desimal). Støtter `locked`-prop for skrivebeskyttelse | `GET/PUT/DELETE time-entries`, `POST time-entries/import` |
+| TimeGrid | `time-grid.js` | Månedsrutenett for timeregistrering med autolagring, helgmarkering, sletteknapp per rad, valgfri visning (hh:mm/desimal). Støtter `locked`-prop for skrivebeskyttelse | `GET/PUT/DELETE time-entries` |
+| GSheetImport | `gsheet-import.js` | Google Sheets-import modal (tab-separert copy-paste, kun admin). Emitter `imported` for reload | `POST time-entries/import` |
 | ReportView | `report-view.js` | Faktureringsgrunnlag per fakturaprosjekt, filtrert på innlogget brukers arbeidsgiver, med seksjonsfordelte timer og Excel/PDF-eksport | `GET reports/monthly`, `GET sections`, `GET jira-projects` |
 | AdminEmployers | `admin-employers.js` | CRUD arbeidsgivere med org.nr., e-postdomene og adresse. Slett deaktivert for arbeidsgivere med konsulenter | `GET/POST/PUT/DELETE employers`, `GET employers/with-consultants` |
 | AdminConsultants | `admin-consultants.js` | CRUD konsulenter med arbeidsgiver-dropdown, admin-flagg, aktiv-status og ansettelsesperiode. E-post valideres dynamisk mot valgt arbeidsgivers domene. Slett deaktivert for konsulenter med timer | `GET/POST/PUT/DELETE consultants`, `GET consultants/with-time-entries`, `GET employers` |
@@ -241,11 +242,26 @@ Følg mønsteret fra DistributionKeys / SectionDistributionKeys:
 - Constructor tar `DbConnectionFactory`, bruker `using var connection = _connectionFactory.CreateConnection()`
 - Skrive-operasjoner med flere tabeller bruker transaksjon (`connection.BeginTransaction()`)
 - Returnerer DTO-er (ikke entiteter) fra lese-metoder som trenger joins
+- Bruk `DateRange.ForMonth(year, month)` for å beregne start/slutt-dato for en måned
+
+### Helpers (`Helpers/`)
+- `JiraIssueKeyParser.ExtractProjectKey(issueKey)` — ekstraher prosjektnøkkel fra Jira-saksnøkkel (f.eks. "AFP" fra "AFP-123")
+- `DateRange.ForMonth(year, month)` — returnerer `(firstDay, lastDay)` som yyyy-MM-dd strenger
+- `MonthNames.Norwegian` — array med norske månedsnavn (indeks 0 er tom, 1-12 er månedsnavn)
+
+### Services (`Services/`)
+- `ReportService` — genererer Excel (ClosedXML) og PDF (QuestPDF) rapporter. Registrert som scoped service.
 
 ### Frontend-komponent
 - ES6-modul som eksporterer Vue Options API-objekt med `template` som inline string
 - Importerer `api` fra `../services/api.js`
 - Data hentes i `mounted()` via `this.load()`
+
+### Frontend-hjelpefunksjoner (`wwwroot/js/utils/formatting.js`)
+- `MONTH_NAMES` — array med norske månedsnavn (0-indeksert)
+- `MONTH_NAMES_SHORT` — korte månedsnavn (jan, feb, ...)
+- `formatHours(hours, mode)` — formatering av timer (1 desimal eller hh:mm)
+- `formatDistribution(hours, mode)` — formatering av fordelte timer (2 desimaler eller hh:mm)
 
 ## Viktig kontekst
 

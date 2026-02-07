@@ -1,4 +1,5 @@
 import api from '../services/api.js';
+import { MONTH_NAMES_SHORT } from '../utils/formatting.js';
 
 export default {
     name: 'AdminConsultants',
@@ -244,8 +245,7 @@ export default {
         formatMonth(dateStr) {
             if (!dateStr) return '';
             const [year, month] = dateStr.substring(0, 7).split('-');
-            const months = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'];
-            return months[parseInt(month) - 1] + ' ' + year;
+            return MONTH_NAMES_SHORT[parseInt(month) - 1] + ' ' + year;
         },
         async remove(consultant) {
             if (!confirm(`Slette ${consultant.firstName} ${consultant.lastName}? Dette vil også slette alle timeregistreringer.`)) {

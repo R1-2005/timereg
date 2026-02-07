@@ -6,6 +6,7 @@ import AdminConsultants from './components/admin-consultants.js';
 import AdminProjects from './components/admin-projects.js';
 import MonthPicker from './components/month-picker.js';
 import TimeGrid from './components/time-grid.js';
+import GSheetImport from './components/gsheet-import.js';
 import ReportView from './components/report-view.js';
 
 const { createApp, ref, watch, onMounted } = Vue;
@@ -19,6 +20,7 @@ const App = {
         AdminProjects,
         MonthPicker,
         TimeGrid,
+        GSheetImport,
         ReportView
     },
     template: `
@@ -125,6 +127,14 @@ const App = {
                         :month="selectedMonth"
                         :display-mode="displayMode"
                         :locked="isMonthLocked"
+                    />
+                    <GSheetImport
+                        :show="showGSheetImport"
+                        :year="selectedYear"
+                        :month="selectedMonth"
+                        :consultant-id="consultant.id"
+                        @close="showGSheetImport = false"
+                        @imported="onGSheetImported"
                     />
                 </div>
 
@@ -235,10 +245,15 @@ const App = {
         };
 
         const timeGrid = ref(null);
+        const showGSheetImport = ref(false);
 
         const openGSheetImport = () => {
+            showGSheetImport.value = true;
+        };
+
+        const onGSheetImported = () => {
             if (timeGrid.value) {
-                timeGrid.value.openGSheetModal();
+                timeGrid.value.load();
             }
         };
 
@@ -307,7 +322,9 @@ const App = {
             logout,
             toggleMonthLock,
             timeGrid,
+            showGSheetImport,
             openGSheetImport,
+            onGSheetImported,
             exportJson,
             importJson
         };
