@@ -105,7 +105,7 @@ const App = {
                                 Importer fra G-Sheet
                             </button>
                             <button class="btn btn-secondary" @click="exportExcel">
-                                Eksporter Excel
+                                📊 Eksporter Excel
                             </button>
                             <button class="btn btn-secondary" @click="exportJson">
                                 Eksporter JSON
