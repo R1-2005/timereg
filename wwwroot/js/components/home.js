@@ -6,12 +6,15 @@ export default {
     components: { MonthPicker },
     template: `
         <div class="home">
-            <MonthPicker
-                :year="year"
-                :month="month"
-                @update:year="year = $event"
-                @update:month="month = $event"
-            />
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <MonthPicker
+                    :year="year"
+                    :month="month"
+                    @update:year="year = $event"
+                    @update:month="month = $event"
+                />
+                <span class="month-display">{{ employerName }}</span>
+            </div>
 
             <div v-if="loading" class="loading">Laster...</div>
             <div v-else-if="error" class="error">{{ error }}</div>
@@ -65,6 +68,7 @@ export default {
         </div>
     `,
     data() {
+        const saved = JSON.parse(localStorage.getItem('consultant') || '{}');
         return {
             year: new Date().getFullYear(),
             month: new Date().getMonth() + 1,
@@ -72,7 +76,9 @@ export default {
             invoiceProjects: [],
             monthlyLocks: [],
             loading: true,
-            error: null
+            error: null,
+            employerId: saved.employerId || null,
+            employerName: saved.employerName || ''
         };
     },
     computed: {
@@ -96,6 +102,7 @@ export default {
         consultants() {
             const map = new Map();
             for (const row of this.summaryData) {
+                if (this.employerId && row.employerId !== this.employerId) continue;
                 if (!map.has(row.consultantId)) {
                     const completionPercent = this.workDaysInMonth > 0
                         ? Math.round((row.daysWithEntries / this.workDaysInMonth) * 100)

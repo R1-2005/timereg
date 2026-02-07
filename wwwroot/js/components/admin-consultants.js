@@ -19,6 +19,7 @@ export default {
                 <thead>
                     <tr>
                         <th>Navn</th>
+                        <th>Arbeidsgiver</th>
                         <th>E-post</th>
                         <th>Ansatt</th>
                         <th>Sluttet</th>
@@ -31,6 +32,7 @@ export default {
                 <tbody>
                     <tr v-for="c in consultants" :key="c.id">
                         <td>{{ c.firstName }} {{ c.lastName }}</td>
+                        <td>{{ c.employerName || '' }}</td>
                         <td>{{ c.email }}</td>
                         <td>{{ formatMonth(c.employedFrom) }}</td>
                         <td>{{ formatMonth(c.employedTo) }}</td>
@@ -43,7 +45,7 @@ export default {
                         </td>
                     </tr>
                     <tr v-if="consultants.length === 0">
-                        <td colspan="8" style="text-align: center;" class="no-data">
+                        <td colspan="9" style="text-align: center;" class="no-data">
                             Ingen konsulenter registrert
                         </td>
                     </tr>
@@ -68,8 +70,15 @@ export default {
                         </div>
                     </div>
                     <div class="form-group">
+                        <label>Arbeidsgiver</label>
+                        <select v-model="form.employerId" required>
+                            <option :value="null" disabled>Velg arbeidsgiver</option>
+                            <option v-for="e in employers" :key="e.id" :value="e.id">{{ e.name }}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label>E-post</label>
-                        <input v-model="form.email" type="email" required placeholder="navn@proventus.no">
+                        <input v-model="form.email" type="email" required :placeholder="emailPlaceholder">
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -116,12 +125,19 @@ export default {
         return {
             consultants: [],
             consultantIdsWithHours: [],
-            form: { firstName: '', lastName: '', email: '', isAdmin: false, canRegisterHours: true, isActive: true, employedFromMonth: '', employedToMonth: '' },
+            employers: [],
+            form: { firstName: '', lastName: '', email: '', isAdmin: false, canRegisterHours: true, isActive: true, employedFromMonth: '', employedToMonth: '', employerId: null },
             showModal: false,
             editing: null,
             error: null,
             modalError: null
         };
+    },
+    computed: {
+        emailPlaceholder() {
+            const employer = this.employers.find(e => e.id === this.form.employerId);
+            return employer ? `navn@${employer.emailDomain}` : 'Velg arbeidsgiver først';
+        }
     },
     async mounted() {
         await this.load();
@@ -129,12 +145,14 @@ export default {
     methods: {
         async load() {
             try {
-                const [consultants, idsWithHours] = await Promise.all([
+                const [consultants, idsWithHours, employers] = await Promise.all([
                     api.getConsultants(),
-                    api.getConsultantsWithTimeEntries()
+                    api.getConsultantsWithTimeEntries(),
+                    api.getEmployers()
                 ]);
                 this.consultants = consultants;
                 this.consultantIdsWithHours = idsWithHours;
+                this.employers = employers;
             } catch (e) {
                 this.error = 'Kunne ikke laste konsulenter: ' + e.message;
             }
@@ -155,10 +173,11 @@ export default {
                     canRegisterHours: consultant.canRegisterHours,
                     isActive: consultant.isActive,
                     employedFromMonth: this.dateToMonth(consultant.employedFrom),
-                    employedToMonth: this.dateToMonth(consultant.employedTo)
+                    employedToMonth: this.dateToMonth(consultant.employedTo),
+                    employerId: consultant.employerId
                 };
             } else {
-                this.form = { firstName: '', lastName: '', email: '', isAdmin: false, canRegisterHours: true, isActive: true, employedFromMonth: '', employedToMonth: '' };
+                this.form = { firstName: '', lastName: '', email: '', isAdmin: false, canRegisterHours: true, isActive: true, employedFromMonth: '', employedToMonth: '', employerId: null };
             }
 
             this.showModal = true;
@@ -170,9 +189,16 @@ export default {
         async saveConsultant() {
             this.modalError = null;
 
-            // Validate proventus.no email
-            if (!this.form.email.toLowerCase().endsWith('@proventus.no')) {
-                this.modalError = 'Kun @proventus.no e-postadresser er tillatt.';
+            // Validate employer is selected
+            if (!this.form.employerId) {
+                this.modalError = 'Velg en arbeidsgiver.';
+                return;
+            }
+
+            // Validate email domain matches employer
+            const employer = this.employers.find(e => e.id === this.form.employerId);
+            if (employer && !this.form.email.toLowerCase().endsWith('@' + employer.emailDomain.toLowerCase())) {
+                this.modalError = `E-postadressen må slutte med @${employer.emailDomain}.`;
                 return;
             }
 
@@ -184,7 +210,8 @@ export default {
                 canRegisterHours: this.form.canRegisterHours,
                 isActive: this.form.isActive,
                 employedFrom: this.monthToFirstDay(this.form.employedFromMonth),
-                employedTo: this.monthToLastDay(this.form.employedToMonth)
+                employedTo: this.monthToLastDay(this.form.employedToMonth),
+                employerId: this.form.employerId
             };
 
             try {

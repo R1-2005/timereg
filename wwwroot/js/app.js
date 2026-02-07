@@ -1,6 +1,7 @@
 import api from './services/api.js';
 import Login from './components/login.js';
 import Home from './components/home.js';
+import AdminEmployers from './components/admin-employers.js';
 import AdminConsultants from './components/admin-consultants.js';
 import AdminProjects from './components/admin-projects.js';
 import MonthPicker from './components/month-picker.js';
@@ -13,6 +14,7 @@ const App = {
     components: {
         Login,
         Home,
+        AdminEmployers,
         AdminConsultants,
         AdminProjects,
         MonthPicker,
@@ -128,8 +130,14 @@ const App = {
                 </div>
 
                 <div v-if="tab === 'admin'">
-                    <AdminConsultants />
-                    <AdminProjects />
+                    <ul class="sub-tabs">
+                        <li><a href="#" :class="{ active: adminTab === 'prosjekter' }" @click.prevent="adminTab = 'prosjekter'">Jira-prosjekter</a></li>
+                        <li><a href="#" :class="{ active: adminTab === 'konsulenter' }" @click.prevent="adminTab = 'konsulenter'">Konsulenter</a></li>
+                        <li><a href="#" :class="{ active: adminTab === 'arbeidsgivere' }" @click.prevent="adminTab = 'arbeidsgivere'">Arbeidsgivere</a></li>
+                    </ul>
+                    <AdminProjects v-if="adminTab === 'prosjekter'" />
+                    <AdminConsultants v-if="adminTab === 'konsulenter'" />
+                    <AdminEmployers v-if="adminTab === 'arbeidsgivere'" />
                 </div>
             </div>
         </div>
@@ -139,6 +147,7 @@ const App = {
         const noConsultants = ref(false);
         const consultant = ref(null);
         const tab = ref('hjem');
+        const adminTab = ref('prosjekter');
         const darkMode = ref(localStorage.getItem('theme') === 'dark');
 
         const applyTheme = () => {
@@ -277,6 +286,7 @@ const App = {
             noConsultants,
             consultant,
             tab,
+            adminTab,
             darkMode,
             toggleTheme,
             selectedYear,

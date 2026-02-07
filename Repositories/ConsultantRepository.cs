@@ -16,21 +16,22 @@ public class ConsultantRepository
     public async Task<IEnumerable<Consultant>> GetAllAsync()
     {
         using var connection = _connectionFactory.CreateConnection();
-        return await connection.QueryAsync<Consultant>("SELECT * FROM Consultants ORDER BY LastName, FirstName");
+        return await connection.QueryAsync<Consultant>(
+            "SELECT c.*, e.Name AS EmployerName FROM Consultants c LEFT JOIN Employers e ON c.EmployerId = e.Id ORDER BY c.LastName, c.FirstName");
     }
 
     public async Task<Consultant?> GetByIdAsync(int id)
     {
         using var connection = _connectionFactory.CreateConnection();
         return await connection.QuerySingleOrDefaultAsync<Consultant>(
-            "SELECT * FROM Consultants WHERE Id = @Id", new { Id = id });
+            "SELECT c.*, e.Name AS EmployerName FROM Consultants c LEFT JOIN Employers e ON c.EmployerId = e.Id WHERE c.Id = @Id", new { Id = id });
     }
 
     public async Task<Consultant?> GetByFirstNameAndEmailAsync(string firstName, string email)
     {
         using var connection = _connectionFactory.CreateConnection();
         return await connection.QuerySingleOrDefaultAsync<Consultant>(
-            "SELECT * FROM Consultants WHERE FirstName = @FirstName AND Email = @Email",
+            "SELECT c.*, e.Name AS EmployerName FROM Consultants c LEFT JOIN Employers e ON c.EmployerId = e.Id WHERE c.FirstName = @FirstName AND c.Email = @Email",
             new { FirstName = firstName, Email = email });
     }
 
@@ -39,8 +40,8 @@ public class ConsultantRepository
         using var connection = _connectionFactory.CreateConnection();
         var id = await connection.ExecuteScalarAsync<int>(
             """
-            INSERT INTO Consultants (FirstName, LastName, Email, IsAdmin, CanRegisterHours, IsActive, EmployedFrom, EmployedTo)
-            VALUES (@FirstName, @LastName, @Email, @IsAdmin, @CanRegisterHours, @IsActive, @EmployedFrom, @EmployedTo);
+            INSERT INTO Consultants (FirstName, LastName, Email, IsAdmin, CanRegisterHours, IsActive, EmployedFrom, EmployedTo, EmployerId)
+            VALUES (@FirstName, @LastName, @Email, @IsAdmin, @CanRegisterHours, @IsActive, @EmployedFrom, @EmployedTo, @EmployerId);
             SELECT last_insert_rowid()
             """, consultant);
         consultant.Id = id;
@@ -55,7 +56,7 @@ public class ConsultantRepository
             UPDATE Consultants
             SET FirstName = @FirstName, LastName = @LastName, Email = @Email,
                 IsAdmin = @IsAdmin, CanRegisterHours = @CanRegisterHours, IsActive = @IsActive,
-                EmployedFrom = @EmployedFrom, EmployedTo = @EmployedTo
+                EmployedFrom = @EmployedFrom, EmployedTo = @EmployedTo, EmployerId = @EmployerId
             WHERE Id = @Id
             """, consultant);
         return rowsAffected > 0 ? consultant : null;

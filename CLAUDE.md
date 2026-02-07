@@ -42,6 +42,19 @@ dotnet publish -c Release  # Produksjon
 
 ## Databaseskjema
 
+### Employers
+| Kolonne | Type | Constraint |
+|---------|------|------------|
+| Id | INTEGER | PK AUTOINCREMENT |
+| Name | TEXT NOT NULL | |
+| OrgNumber | TEXT NOT NULL | UNIQUE |
+| EmailDomain | TEXT NOT NULL | UNIQUE |
+| Address | TEXT | |
+| PostalCode | TEXT | |
+| City | TEXT | |
+
+Seed: Proventus AS (984794452, proventus.no, Pilestredet 28, 0166, OSLO)
+
 ### Consultants
 | Kolonne | Type | Constraint |
 |---------|------|------------|
@@ -54,6 +67,7 @@ dotnet publish -c Release  # Produksjon
 | IsActive | INTEGER NOT NULL | DEFAULT 1 |
 | EmployedFrom | TEXT | yyyy-MM-dd, alltid 1. i mnd |
 | EmployedTo | TEXT | yyyy-MM-dd, alltid siste i mnd. null = aktiv |
+| EmployerId | INTEGER | FK → Employers(Id) |
 
 ### InvoiceProjects
 | Kolonne | Type | Constraint |
@@ -127,12 +141,20 @@ UNIQUE(ConsultantId, Year, Month). Når en rad finnes er måneden markert som fe
 ## API-endepunkter
 
 ### Innlogging
-- `POST /api/login` ← `{ firstName, email }` → `Consultant` eller 401. Kun @proventus.no tillatt. Deaktiverte brukere (IsActive=false) avvises med 400.
+- `POST /api/login` ← `{ firstName, email }` → `Consultant` eller 401. E-postdomenet må matche en registrert arbeidsgiver. Deaktiverte brukere (IsActive=false) avvises med 400.
+
+### Arbeidsgivere
+- `GET /api/employers` → `Employer[]`
+- `GET /api/employers/{id}` → `Employer`
+- `POST /api/employers` ← `Employer` (validerer: OrgNumber 9 siffer, EmailDomain påkrevd)
+- `PUT /api/employers/{id}` ← `Employer`
+- `GET /api/employers/with-consultants` → `int[]` (arbeidsgiver-IDer som har konsulenter)
+- `DELETE /api/employers/{id}` — avviser med 400 hvis arbeidsgiveren har konsulenter
 
 ### Konsulenter
-- `GET /api/consultants` → `Consultant[]`
+- `GET /api/consultants` → `Consultant[]` (inkl. EmployerName via JOIN)
 - `GET /api/consultants/{id}` → `Consultant`
-- `POST /api/consultants` ← `Consultant` (validerer @proventus.no)
+- `POST /api/consultants` ← `Consultant` (validerer e-postdomene mot valgt arbeidsgiver)
 - `PUT /api/consultants/{id}` ← `Consultant`
 - `GET /api/consultants/with-time-entries` → `int[]` (konsulent-IDer som har timeregistreringer)
 - `DELETE /api/consultants/{id}` — avviser med 400 hvis konsulenten har timeregistreringer
@@ -176,14 +198,15 @@ UNIQUE(ConsultantId, Year, Month). Når en rad finnes er måneden markert som fe
 | Komponent | Fil | Beskrivelse | API-kall |
 |-----------|-----|-------------|----------|
 | Login | `login.js` | Innlogging med fornavn + e-post, lagrer bruker i localStorage | `POST /api/login` |
-| Home | `home.js` | Oversikt ansatte i valgt måned, fargekodert utfyllingsgrad, ferdig-status per konsulent | `GET monthly-summary`, `GET consultants`, `GET monthly-locks/by-month` |
+| Home | `home.js` | Oversikt ansatte i valgt måned, filtrert på innlogget brukers arbeidsgiver, fargekodert utfyllingsgrad, ferdig-status per konsulent | `GET monthly-summary`, `GET monthly-locks/by-month` |
 | TimeGrid | `time-grid.js` | Månedsrutenett for timeregistrering med autolagring, helgmarkering, sletteknapp per rad, JSON eksport/import, valgfri visning (hh:mm/desimal). Støtter `locked`-prop for skrivebeskyttelse | `GET/PUT/DELETE time-entries` |
 | ReportView | `report-view.js` | Faktureringsgrunnlag per fakturaprosjekt med seksjonsfordelte timer og Excel/PDF-eksport | `GET reports/monthly`, `GET sections`, `GET jira-projects` |
-| AdminConsultants | `admin-consultants.js` | CRUD konsulenter med admin-flagg, aktiv-status og ansettelsesperiode. Fargekodede Ja/Nei-badges. Slett deaktivert for konsulenter med timer | `GET/POST/PUT/DELETE consultants`, `GET consultants/with-time-entries` |
+| AdminEmployers | `admin-employers.js` | CRUD arbeidsgivere med org.nr., e-postdomene og adresse. Slett deaktivert for arbeidsgivere med konsulenter | `GET/POST/PUT/DELETE employers`, `GET employers/with-consultants` |
+| AdminConsultants | `admin-consultants.js` | CRUD konsulenter med arbeidsgiver-dropdown, admin-flagg, aktiv-status og ansettelsesperiode. E-post valideres dynamisk mot valgt arbeidsgivers domene. Slett deaktivert for konsulenter med timer | `GET/POST/PUT/DELETE consultants`, `GET consultants/with-time-entries`, `GET employers` |
 | AdminProjects | `admin-projects.js` | CRUD Jira-prosjekter med fordelingsnøkler og seksjonsfordeling, JSON eksport/import | `GET/POST/PUT/DELETE jira-projects`, `GET sections`, `GET invoice-projects` |
 | MonthPicker | `month-picker.js` | Gjenbrukbar månedsvelger med forrige/neste-navigasjon | (ingen) |
 
-App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synlig for IsAdmin-brukere. Håndterer månedslås-tilstand og "Marker som ferdig"-knapp i timeregistreringsfanen. Inkluderer dark/light theme toggle (localStorage-persistert).
+App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synlig for IsAdmin-brukere med arkfaner (Jira-prosjekter, Konsulenter, Arbeidsgivere). Håndterer månedslås-tilstand og "Marker som ferdig"-knapp i timeregistreringsfanen. Inkluderer dark/light theme toggle (localStorage-persistert).
 
 ## Forretningsregler
 
@@ -192,10 +215,11 @@ App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synl
 3. **Unik registrering:** Én timeregistrering per konsulent per Jira-sak per dag.
 4. **Ansettelsesfiltrering:** Hjem og Rapport filtrerer på konsulenter ansatt i valgt måned (EmployedFrom <= siste dag i mnd OG (EmployedTo IS NULL ELLER EmployedTo >= første dag i mnd)). Hjem filtrerer i tillegg bort konsulenter med CanRegisterHours=false.
 5. **Admin-tilgang:** Kun IsAdmin=true ser Admin-fanen.
-6. **E-postvalidering:** Kun @proventus.no-adresser ved innlogging og konsulentopprettelse.
-7. **Månedslås:** Konsulenter kan markere en måned som "ferdig". Låste måneder er skrivebeskyttet — API avviser alle skriveoperasjoner (upsert, delete, import) med 400. Låsen kan angres av konsulenten selv.
-8. **Deaktivering:** Konsulenter kan deaktiveres (IsActive=false). Deaktiverte brukere kan ikke logge inn. Konsulenter med timeregistreringer kan ikke slettes — de må deaktiveres i stedet.
-9. **Seksjonsfordeling i rapport:** Rapporten viser kolonner per seksjon med timer beregnet som `fakturaprosjekt-timer × seksjonsprosent / 100`. Samme kolonner i Excel- og PDF-eksport.
+6. **E-postvalidering:** E-postdomenet må matche en registrert arbeidsgiver (dynamisk via Employers-tabellen). Valideres ved innlogging og konsulentopprettelse/-redigering.
+7. **Arbeidsgiverfiltrering:** Hjem-siden viser kun konsulenter med samme arbeidsgiver som innlogget bruker.
+8. **Månedslås:** Konsulenter kan markere en måned som "ferdig". Låste måneder er skrivebeskyttet — API avviser alle skriveoperasjoner (upsert, delete, import) med 400. Låsen kan angres av konsulenten selv.
+9. **Deaktivering:** Konsulenter kan deaktiveres (IsActive=false). Deaktiverte brukere kan ikke logge inn. Konsulenter med timeregistreringer kan ikke slettes — de må deaktiveres i stedet.
+10. **Seksjonsfordeling i rapport:** Rapporten viser kolonner per seksjon med timer beregnet som `fakturaprosjekt-timer × seksjonsprosent / 100`. Samme kolonner i Excel- og PDF-eksport.
 
 ## Mønstre og konvensjoner
 

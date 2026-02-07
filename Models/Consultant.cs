@@ -11,4 +11,6 @@ public class Consultant
     public bool IsActive { get; set; } = true;
     public string? EmployedFrom { get; set; }
     public string? EmployedTo { get; set; }
+    public int EmployerId { get; set; }
+    public string? EmployerName { get; set; }
 }

@@ -14,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<DbConnectionFactory>();
 builder.Services.AddSingleton<DatabaseInitializer>();
 builder.Services.AddScoped<ConsultantRepository>();
+builder.Services.AddScoped<EmployerRepository>();
 builder.Services.AddScoped<InvoiceProjectRepository>();
 builder.Services.AddScoped<JiraProjectRepository>();
 builder.Services.AddScoped<TimeEntryRepository>();
@@ -37,11 +38,16 @@ app.UseStaticFiles();
 var api = app.MapGroup("/api");
 
 // Login
-api.MapPost("/login", async (LoginRequest request, ConsultantRepository repo) =>
+api.MapPost("/login", async (LoginRequest request, ConsultantRepository repo, EmployerRepository employerRepo) =>
 {
-    // Validate proventus.no email domain
-    if (!request.Email.EndsWith("@proventus.no", StringComparison.OrdinalIgnoreCase))
-        return Results.BadRequest(new { error = "Kun @proventus.no e-postadresser er tillatt." });
+    var atIndex = request.Email.LastIndexOf('@');
+    if (atIndex <= 0)
+        return Results.BadRequest(new { error = "Ugyldig e-postadresse." });
+
+    var domain = request.Email[(atIndex + 1)..];
+    var employer = await employerRepo.GetByEmailDomainAsync(domain);
+    if (employer is null)
+        return Results.BadRequest(new { error = "E-postdomenet er ikke knyttet til en registrert arbeidsgiver." });
 
     var consultant = await repo.GetByFirstNameAndEmailAsync(request.FirstName, request.Email);
     if (consultant is null)
@@ -63,19 +69,27 @@ consultants.MapGet("/{id:int}", async (int id, ConsultantRepository repo) =>
     return consultant is not null ? Results.Ok(consultant) : Results.NotFound();
 });
 
-consultants.MapPost("/", async (Consultant consultant, ConsultantRepository repo) =>
+consultants.MapPost("/", async (Consultant consultant, ConsultantRepository repo, EmployerRepository employerRepo) =>
 {
-    if (!consultant.Email.EndsWith("@proventus.no", StringComparison.OrdinalIgnoreCase))
-        return Results.BadRequest(new { error = "Kun @proventus.no e-postadresser er tillatt." });
+    var employer = await employerRepo.GetByIdAsync(consultant.EmployerId);
+    if (employer is null)
+        return Results.BadRequest(new { error = "Ugyldig arbeidsgiver." });
+
+    if (!consultant.Email.EndsWith($"@{employer.EmailDomain}", StringComparison.OrdinalIgnoreCase))
+        return Results.BadRequest(new { error = $"E-postadressen må slutte med @{employer.EmailDomain}." });
 
     var created = await repo.CreateAsync(consultant);
     return Results.Created($"/api/consultants/{created.Id}", created);
 });
 
-consultants.MapPut("/{id:int}", async (int id, Consultant consultant, ConsultantRepository repo) =>
+consultants.MapPut("/{id:int}", async (int id, Consultant consultant, ConsultantRepository repo, EmployerRepository employerRepo) =>
 {
-    if (!consultant.Email.EndsWith("@proventus.no", StringComparison.OrdinalIgnoreCase))
-        return Results.BadRequest(new { error = "Kun @proventus.no e-postadresser er tillatt." });
+    var employer = await employerRepo.GetByIdAsync(consultant.EmployerId);
+    if (employer is null)
+        return Results.BadRequest(new { error = "Ugyldig arbeidsgiver." });
+
+    if (!consultant.Email.EndsWith($"@{employer.EmailDomain}", StringComparison.OrdinalIgnoreCase))
+        return Results.BadRequest(new { error = $"E-postadressen må slutte med @{employer.EmailDomain}." });
 
     consultant.Id = id;
     var updated = await repo.UpdateAsync(consultant);
@@ -89,6 +103,65 @@ consultants.MapDelete("/{id:int}", async (int id, ConsultantRepository repo) =>
 {
     if (await repo.HasTimeEntriesAsync(id))
         return Results.BadRequest(new { error = "Konsulenten har timeregistreringer og kan ikke slettes. Deaktiver brukeren i stedet." });
+
+    var deleted = await repo.DeleteAsync(id);
+    return deleted ? Results.NoContent() : Results.NotFound();
+});
+
+// Employers
+var employers = api.MapGroup("/employers");
+
+employers.MapGet("/", async (EmployerRepository repo) =>
+    Results.Ok(await repo.GetAllAsync()));
+
+employers.MapGet("/with-consultants", async (EmployerRepository repo) =>
+    Results.Ok(await repo.GetIdsWithConsultantsAsync()));
+
+employers.MapGet("/{id:int}", async (int id, EmployerRepository repo) =>
+{
+    var employer = await repo.GetByIdAsync(id);
+    return employer is not null ? Results.Ok(employer) : Results.NotFound();
+});
+
+employers.MapPost("/", async (Employer employer, EmployerRepository repo) =>
+{
+    if (string.IsNullOrWhiteSpace(employer.Name))
+        return Results.BadRequest(new { error = "Navn er påkrevd." });
+
+    if (string.IsNullOrWhiteSpace(employer.OrgNumber) || !System.Text.RegularExpressions.Regex.IsMatch(employer.OrgNumber, @"^\d{9}$"))
+        return Results.BadRequest(new { error = "Organisasjonsnummer må være 9 siffer." });
+
+    if (string.IsNullOrWhiteSpace(employer.EmailDomain))
+        return Results.BadRequest(new { error = "E-postdomene er påkrevd." });
+
+    employer.EmailDomain = employer.EmailDomain.TrimStart('@').ToLower();
+
+    var created = await repo.CreateAsync(employer);
+    return Results.Created($"/api/employers/{created.Id}", created);
+});
+
+employers.MapPut("/{id:int}", async (int id, Employer employer, EmployerRepository repo) =>
+{
+    if (string.IsNullOrWhiteSpace(employer.Name))
+        return Results.BadRequest(new { error = "Navn er påkrevd." });
+
+    if (string.IsNullOrWhiteSpace(employer.OrgNumber) || !System.Text.RegularExpressions.Regex.IsMatch(employer.OrgNumber, @"^\d{9}$"))
+        return Results.BadRequest(new { error = "Organisasjonsnummer må være 9 siffer." });
+
+    if (string.IsNullOrWhiteSpace(employer.EmailDomain))
+        return Results.BadRequest(new { error = "E-postdomene er påkrevd." });
+
+    employer.EmailDomain = employer.EmailDomain.TrimStart('@').ToLower();
+    employer.Id = id;
+
+    var updated = await repo.UpdateAsync(employer);
+    return updated is not null ? Results.Ok(updated) : Results.NotFound();
+});
+
+employers.MapDelete("/{id:int}", async (int id, EmployerRepository repo) =>
+{
+    if (await repo.HasConsultantsAsync(id))
+        return Results.BadRequest(new { error = "Arbeidsgiveren har konsulenter og kan ikke slettes." });
 
     var deleted = await repo.DeleteAsync(id);
     return deleted ? Results.NoContent() : Results.NotFound();

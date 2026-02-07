@@ -154,6 +154,7 @@ public class TimeEntryRepository
                     c.Id AS ConsultantId,
                     c.FirstName,
                     c.LastName,
+                    c.EmployerId,
                     COALESCE(SUM(te.Hours), 0.0) AS TotalHours,
                     COUNT(DISTINCT te.Date) AS DaysWithEntries
                 FROM Consultants c
@@ -180,6 +181,7 @@ public class TimeEntryRepository
                 ct.ConsultantId,
                 ct.FirstName,
                 ct.LastName,
+                ct.EmployerId,
                 CAST(ct.TotalHours AS REAL) AS TotalHours,
                 ct.DaysWithEntries,
                 ip.Id AS InvoiceProjectId,
@@ -199,6 +201,7 @@ public class TimeEntryRepository
         public int ConsultantId { get; set; }
         public string FirstName { get; set; } = "";
         public string LastName { get; set; } = "";
+        public int EmployerId { get; set; }
         public double TotalHours { get; set; }
         public int DaysWithEntries { get; set; }
         public int InvoiceProjectId { get; set; }

@@ -44,6 +44,13 @@ const api = {
     updateConsultant: (id, data) => api.put(`/api/consultants/${id}`, data),
     deleteConsultant: (id) => api.delete(`/api/consultants/${id}`),
 
+    // Employers
+    getEmployers: () => api.get('/api/employers'),
+    getEmployersWithConsultants: () => api.get('/api/employers/with-consultants'),
+    createEmployer: (data) => api.post('/api/employers', data),
+    updateEmployer: (id, data) => api.put(`/api/employers/${id}`, data),
+    deleteEmployer: (id) => api.delete(`/api/employers/${id}`),
+
     // Login
     login: (firstName, email) => api.post('/api/login', { firstName, email }),
 
