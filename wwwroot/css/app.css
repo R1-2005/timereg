@@ -138,6 +138,33 @@ body {
     display: flex;
     align-items: center;
     height: 56px;
+    position: relative;
+}
+
+.nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.nav-center .month-picker {
+    margin-bottom: 0;
+}
+
+.nav-center .month-btn {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: rgba(255,255,255,0.8);
+}
+
+.nav-center .month-btn:hover {
+    background: rgba(255,255,255,0.2);
+    color: white;
+}
+
+.nav-center .month-display {
+    color: white;
+    font-size: 15px;
 }
 
 .nav-tabs {
@@ -577,16 +604,21 @@ tfoot .sum-row td {
     color: var(--color-primary);
 }
 
+/* Employer label */
+.employer-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    margin-bottom: 16px;
+    display: inline-block;
+}
+
 /* Time grid */
 .time-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     margin-bottom: 16px;
-}
-
-.time-header .month-picker {
-    margin-bottom: 0;
 }
 
 .time-header-actions {

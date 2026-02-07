@@ -74,6 +74,14 @@ const App = {
                         </a>
                     </li>
                 </ul>
+                <div v-if="tab !== 'admin'" class="nav-center">
+                    <MonthPicker
+                        :year="selectedYear"
+                        :month="selectedMonth"
+                        @update:year="selectedYear = $event"
+                        @update:month="selectedMonth = $event"
+                    />
+                </div>
                 <div class="nav-right">
                     <span>{{ consultant.firstName }} {{ consultant.lastName }}</span>
                     <button @click="toggleTheme" class="theme-toggle" :title="darkMode ? 'Bytt til lyst tema' : 'Bytt til mørkt tema'">
@@ -85,17 +93,11 @@ const App = {
 
             <div class="container">
                 <div v-if="tab === 'hjem'">
-                    <Home />
+                    <Home :year="selectedYear" :month="selectedMonth" />
                 </div>
 
                 <div v-if="tab === 'timeregistrering'">
                     <div class="time-header">
-                        <MonthPicker
-                            :year="selectedYear"
-                            :month="selectedMonth"
-                            @update:year="selectedYear = $event"
-                            @update:month="selectedMonth = $event"
-                        />
                         <div class="time-header-actions">
                             <select v-model="displayMode" class="display-mode-select">
                                 <option value="hhmm">Timer som hh:mm</option>
@@ -142,7 +144,7 @@ const App = {
                 </div>
 
                 <div v-if="tab === 'rapport'">
-                    <ReportView />
+                    <ReportView :year="selectedYear" :month="selectedMonth" />
                 </div>
 
                 <div v-if="tab === 'admin'">
