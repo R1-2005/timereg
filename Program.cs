@@ -28,6 +28,7 @@ builder.Services.AddHttpClient("NagerDate", client =>
 });
 builder.Services.AddSingleton<HolidayService>();
 builder.Services.AddSingleton<DatabaseBackupService>();
+builder.Services.AddHostedService<ScheduledBackupService>();
 
 var app = builder.Build();
 
