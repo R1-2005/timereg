@@ -27,6 +27,7 @@ public class ReportRepository
                 c.Id AS ConsultantId,
                 c.FirstName,
                 c.LastName,
+                c.EmployerId,
                 te.JiraIssueKey,
                 CAST(SUM(te.Hours * dk.Percentage / 100.0) AS REAL) AS Hours
             FROM TimeEntries te
@@ -51,6 +52,7 @@ public class ReportRepository
         public int ConsultantId { get; set; }
         public string FirstName { get; set; } = "";
         public string LastName { get; set; } = "";
+        public int EmployerId { get; set; }
         public string JiraIssueKey { get; set; } = "";
         public double Hours { get; set; }
     }

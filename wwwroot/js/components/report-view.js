@@ -6,16 +6,19 @@ export default {
     components: { MonthPicker },
     template: `
         <div class="report-view">
-            <MonthPicker
-                :year="year"
-                :month="month"
-                @update:year="year = $event"
-                @update:month="month = $event"
-            />
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <MonthPicker
+                    :year="year"
+                    :month="month"
+                    @update:year="year = $event"
+                    @update:month="month = $event"
+                />
+                <span class="month-display">{{ employerName }}</span>
+            </div>
 
             <div v-if="loading" class="loading">Laster...</div>
             <div v-else-if="error" class="error">{{ error }}</div>
-            <div v-else-if="reportData.length === 0" class="card">
+            <div v-else-if="filteredReportData().length === 0" class="card">
                 <p class="no-data">Ingen timer registrert for denne perioden.</p>
             </div>
             <div v-else>
@@ -72,6 +75,7 @@ export default {
         </div>
     `,
     data() {
+        const saved = JSON.parse(localStorage.getItem('consultant') || '{}');
         return {
             year: new Date().getFullYear(),
             month: new Date().getMonth() + 1,
@@ -80,7 +84,9 @@ export default {
             sections: [],
             jiraProjects: [],
             loading: true,
-            error: null
+            error: null,
+            employerId: saved.employerId || null,
+            employerName: saved.employerName || ''
         };
     },
     watch: {
@@ -135,8 +141,12 @@ export default {
             return this.getProjectData(invoiceProjectId)
                 .reduce((sum, e) => sum + this.getSectionHours(e.hours, e.jiraIssueKey, sectionId), 0);
         },
+        filteredReportData() {
+            if (!this.employerId) return this.reportData;
+            return this.reportData.filter(r => r.employerId === this.employerId);
+        },
         getProjectData(invoiceProjectId) {
-            return this.reportData.filter(r => r.invoiceProjectId === invoiceProjectId);
+            return this.filteredReportData().filter(r => r.invoiceProjectId === invoiceProjectId);
         },
         getConsultantsForProject(invoiceProjectId) {
             const data = this.getProjectData(invoiceProjectId);
@@ -152,7 +162,7 @@ export default {
             return Array.from(consultantMap.values());
         },
         getEntriesForConsultant(invoiceProjectId, consultantId) {
-            return this.reportData.filter(
+            return this.filteredReportData().filter(
                 r => r.invoiceProjectId === invoiceProjectId && r.consultantId === consultantId
             );
         },
@@ -165,11 +175,11 @@ export default {
                 .reduce((sum, e) => sum + e.hours, 0);
         },
         downloadExcel(invoiceProjectId) {
-            const url = api.getMonthlyReportExcelUrl(this.year, this.month, invoiceProjectId);
+            const url = api.getMonthlyReportExcelUrl(this.year, this.month, invoiceProjectId, this.employerId);
             window.location.href = url;
         },
         downloadPdf(invoiceProjectId) {
-            const url = api.getMonthlyReportPdfUrl(this.year, this.month, invoiceProjectId);
+            const url = api.getMonthlyReportPdfUrl(this.year, this.month, invoiceProjectId, this.employerId);
             window.location.href = url;
         }
     }

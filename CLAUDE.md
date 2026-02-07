@@ -189,9 +189,9 @@ UNIQUE(ConsultantId, Year, Month). Når en rad finnes er måneden markert som fe
 
 ### Oversikt og rapporter
 - `GET /api/monthly-summary?year&month` → sammendrag per konsulent for hjem-siden
-- `GET /api/reports/monthly?year&month` → faktureringsdata per prosjekt (filtrert på ansatte i perioden)
-- `GET /api/reports/monthly/excel?year&month&invoiceProjectId` → Excel-fil (ClosedXML)
-- `GET /api/reports/monthly/pdf?year&month&invoiceProjectId` → PDF-fil (QuestPDF)
+- `GET /api/reports/monthly?year&month` → faktureringsdata per prosjekt (filtrert på ansatte i perioden, inkl. employerId)
+- `GET /api/reports/monthly/excel?year&month&invoiceProjectId&employerId?` → Excel-fil (ClosedXML). Valgfri employerId filtrerer på arbeidsgiver. Filnavn: `{ShortName}_{Månedsnavn}_{år}.xlsx`
+- `GET /api/reports/monthly/pdf?year&month&invoiceProjectId&employerId?` → PDF-fil (QuestPDF). Valgfri employerId filtrerer på arbeidsgiver og viser arbeidsgiver-navn i header. Filnavn: `{ShortName}_{Månedsnavn}_{år}.pdf`
 
 ## Frontend-komponenter
 
@@ -200,7 +200,7 @@ UNIQUE(ConsultantId, Year, Month). Når en rad finnes er måneden markert som fe
 | Login | `login.js` | Innlogging med fornavn + e-post, lagrer bruker i localStorage | `POST /api/login` |
 | Home | `home.js` | Oversikt ansatte i valgt måned, filtrert på innlogget brukers arbeidsgiver, fargekodert utfyllingsgrad, ferdig-status per konsulent | `GET monthly-summary`, `GET monthly-locks/by-month` |
 | TimeGrid | `time-grid.js` | Månedsrutenett for timeregistrering med autolagring, helgmarkering, sletteknapp per rad, JSON eksport/import, valgfri visning (hh:mm/desimal). Støtter `locked`-prop for skrivebeskyttelse | `GET/PUT/DELETE time-entries` |
-| ReportView | `report-view.js` | Faktureringsgrunnlag per fakturaprosjekt med seksjonsfordelte timer og Excel/PDF-eksport | `GET reports/monthly`, `GET sections`, `GET jira-projects` |
+| ReportView | `report-view.js` | Faktureringsgrunnlag per fakturaprosjekt, filtrert på innlogget brukers arbeidsgiver, med seksjonsfordelte timer og Excel/PDF-eksport | `GET reports/monthly`, `GET sections`, `GET jira-projects` |
 | AdminEmployers | `admin-employers.js` | CRUD arbeidsgivere med org.nr., e-postdomene og adresse. Slett deaktivert for arbeidsgivere med konsulenter | `GET/POST/PUT/DELETE employers`, `GET employers/with-consultants` |
 | AdminConsultants | `admin-consultants.js` | CRUD konsulenter med arbeidsgiver-dropdown, admin-flagg, aktiv-status og ansettelsesperiode. E-post valideres dynamisk mot valgt arbeidsgivers domene. Slett deaktivert for konsulenter med timer | `GET/POST/PUT/DELETE consultants`, `GET consultants/with-time-entries`, `GET employers` |
 | AdminProjects | `admin-projects.js` | CRUD Jira-prosjekter med fordelingsnøkler og seksjonsfordeling, JSON eksport/import | `GET/POST/PUT/DELETE jira-projects`, `GET sections`, `GET invoice-projects` |
@@ -216,7 +216,7 @@ App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synl
 4. **Ansettelsesfiltrering:** Hjem og Rapport filtrerer på konsulenter ansatt i valgt måned (EmployedFrom <= siste dag i mnd OG (EmployedTo IS NULL ELLER EmployedTo >= første dag i mnd)). Hjem filtrerer i tillegg bort konsulenter med CanRegisterHours=false.
 5. **Admin-tilgang:** Kun IsAdmin=true ser Admin-fanen.
 6. **E-postvalidering:** E-postdomenet må matche en registrert arbeidsgiver (dynamisk via Employers-tabellen). Valideres ved innlogging og konsulentopprettelse/-redigering.
-7. **Arbeidsgiverfiltrering:** Hjem-siden viser kun konsulenter med samme arbeidsgiver som innlogget bruker.
+7. **Arbeidsgiverfiltrering:** Hjem- og Rapport-siden viser kun konsulenter med samme arbeidsgiver som innlogget bruker. Excel/PDF-eksport filtrerer tilsvarende.
 8. **Månedslås:** Konsulenter kan markere en måned som "ferdig". Låste måneder er skrivebeskyttet — API avviser alle skriveoperasjoner (upsert, delete, import) med 400. Låsen kan angres av konsulenten selv.
 9. **Deaktivering:** Konsulenter kan deaktiveres (IsActive=false). Deaktiverte brukere kan ikke logge inn. Konsulenter med timeregistreringer kan ikke slettes — de må deaktiveres i stedet.
 10. **Seksjonsfordeling i rapport:** Rapporten viser kolonner per seksjon med timer beregnet som `fakturaprosjekt-timer × seksjonsprosent / 100`. Samme kolonner i Excel- og PDF-eksport.

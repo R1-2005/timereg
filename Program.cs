@@ -459,10 +459,12 @@ var reports = api.MapGroup("/reports");
 reports.MapGet("/monthly", async (int year, int month, ReportRepository repo) =>
     Results.Ok(await repo.GetMonthlyReportAsync(year, month)));
 
-reports.MapGet("/monthly/excel", async (int year, int month, int invoiceProjectId, ReportRepository repo, InvoiceProjectRepository ipRepo, SectionRepository sectionRepo, JiraProjectRepository jiraRepo) =>
+reports.MapGet("/monthly/excel", async (int year, int month, int invoiceProjectId, int? employerId, ReportRepository repo, InvoiceProjectRepository ipRepo, SectionRepository sectionRepo, JiraProjectRepository jiraRepo) =>
 {
     var data = await repo.GetMonthlyReportAsync(year, month);
     var projectData = data.Where(r => r.InvoiceProjectId == invoiceProjectId).ToList();
+    if (employerId.HasValue)
+        projectData = projectData.Where(r => r.EmployerId == employerId.Value).ToList();
 
     var invoiceProject = (await ipRepo.GetAllAsync()).FirstOrDefault(ip => ip.Id == invoiceProjectId);
     if (invoiceProject == null)
@@ -592,18 +594,28 @@ reports.MapGet("/monthly/excel", async (int year, int month, int invoiceProjectI
     workbook.SaveAs(stream);
     stream.Position = 0;
 
-    var fileName = $"Fakturering_{invoiceProject.ProjectNumber}_{year}-{month:D2}.xlsx";
+    var shortName = (invoiceProject.ShortName ?? invoiceProject.Name).Replace(" ", "_");
+    var fileName = $"{shortName}_{monthNames[month]}_{year}.xlsx";
     return Results.File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
 });
 
-reports.MapGet("/monthly/pdf", async (int year, int month, int invoiceProjectId, ReportRepository repo, InvoiceProjectRepository ipRepo, SectionRepository sectionRepo, JiraProjectRepository jiraRepo) =>
+reports.MapGet("/monthly/pdf", async (int year, int month, int invoiceProjectId, int? employerId, ReportRepository repo, InvoiceProjectRepository ipRepo, SectionRepository sectionRepo, JiraProjectRepository jiraRepo, EmployerRepository employerRepo) =>
 {
     var data = await repo.GetMonthlyReportAsync(year, month);
     var projectData = data.Where(r => r.InvoiceProjectId == invoiceProjectId).ToList();
+    if (employerId.HasValue)
+        projectData = projectData.Where(r => r.EmployerId == employerId.Value).ToList();
 
     var invoiceProject = (await ipRepo.GetAllAsync()).FirstOrDefault(ip => ip.Id == invoiceProjectId);
     if (invoiceProject == null)
         return Results.NotFound();
+
+    var employerName = "";
+    if (employerId.HasValue)
+    {
+        var employer = await employerRepo.GetByIdAsync(employerId.Value);
+        employerName = employer?.Name ?? "";
+    }
 
     var sections = (await sectionRepo.GetAllAsync()).ToList();
     var jiraProjectDtos = (await jiraRepo.GetAllWithDistributionKeysAsync()).ToList();
@@ -633,8 +645,14 @@ reports.MapGet("/monthly/pdf", async (int year, int month, int invoiceProjectId,
 
             page.Header().Column(col =>
             {
-                col.Item().Text($"{invoiceProject.ProjectNumber} {invoiceProject.Name}")
-                    .FontSize(16).Bold();
+                col.Item().Row(row =>
+                {
+                    row.RelativeItem().Text($"{invoiceProject.ProjectNumber} {invoiceProject.Name}")
+                        .FontSize(16).Bold();
+                    if (!string.IsNullOrEmpty(employerName))
+                        row.RelativeItem().AlignRight().Text(employerName)
+                            .FontSize(16).Bold();
+                });
                 col.Item().Text($"{monthNames[month]} {year}")
                     .FontSize(12);
                 col.Item().PaddingBottom(20);
@@ -735,7 +753,8 @@ reports.MapGet("/monthly/pdf", async (int year, int month, int invoiceProjectId,
     });
 
     var pdfBytes = document.GeneratePdf();
-    var fileName = $"Fakturering_{invoiceProject.ProjectNumber}_{year}-{month:D2}.pdf";
+    var shortName = (invoiceProject.ShortName ?? invoiceProject.Name).Replace(" ", "_");
+    var fileName = $"{shortName}_{monthNames[month]}_{year}.pdf";
     return Results.File(pdfBytes, "application/pdf", fileName);
 });
 
