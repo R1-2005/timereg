@@ -137,6 +137,136 @@ public class ReportService
         worksheet.Cell(row, timerCol).Style.NumberFormat.Format = "0.00";
     }
 
+    public byte[] GenerateTimesheetExcel(
+        string consultantName,
+        IEnumerable<TimeEntry> entries,
+        List<InvoiceProject> invoiceProjects,
+        List<JiraProjectDto> jiraProjectDtos,
+        int year,
+        int month)
+    {
+        var daysInMonth = DateTime.DaysInMonth(year, month);
+        var entriesList = entries.ToList();
+
+        // Group entries by issue key
+        var issueKeys = entriesList.Select(e => e.JiraIssueKey).Distinct().OrderBy(k => k).ToList();
+        var entryLookup = entriesList.ToDictionary(e => $"{e.JiraIssueKey}-{e.Date.Day}");
+
+        // Build distribution key lookup: project key -> invoiceProjectId -> percentage
+        var distKeyLookup = jiraProjectDtos.ToDictionary(
+            jp => jp.Key,
+            jp => jp.DistributionKeys.ToDictionary(dk => dk.InvoiceProjectId, dk => (double)dk.Percentage));
+
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Timeark");
+
+        // Header
+        ws.Cell(1, 1).Value = consultantName;
+        ws.Cell(1, 1).Style.Font.Bold = true;
+        ws.Cell(1, 1).Style.Font.FontSize = 14;
+        ws.Cell(2, 1).Value = $"{MonthNames.Norwegian[month]} {year}";
+
+        // Column headers
+        ws.Cell(4, 1).Value = "Jira-sak";
+        for (int d = 1; d <= daysInMonth; d++)
+        {
+            var date = new DateOnly(year, month, d);
+            ws.Cell(4, 1 + d).Value = d;
+            ws.Cell(4, 1 + d).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            // Mark weekends
+            if (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday)
+                ws.Cell(4, 1 + d).Style.Font.FontColor = XLColor.Gray;
+        }
+        ws.Cell(4, daysInMonth + 2).Value = "Sum";
+        var headerRange = ws.Range(4, 1, 4, daysInMonth + 2);
+        headerRange.Style.Font.Bold = true;
+        headerRange.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+
+        // Data rows
+        var row = 5;
+        var dayTotals = new double[daysInMonth + 1]; // 1-indexed
+
+        foreach (var issueKey in issueKeys)
+        {
+            ws.Cell(row, 1).Value = issueKey;
+            var rowTotal = 0.0;
+
+            for (int d = 1; d <= daysInMonth; d++)
+            {
+                if (entryLookup.TryGetValue($"{issueKey}-{d}", out var entry) && entry.Hours > 0)
+                {
+                    ws.Cell(row, 1 + d).Value = (double)entry.Hours;
+                    ws.Cell(row, 1 + d).Style.NumberFormat.Format = "0.00";
+                    rowTotal += (double)entry.Hours;
+                    dayTotals[d] += (double)entry.Hours;
+                }
+            }
+
+            ws.Cell(row, daysInMonth + 2).Value = rowTotal;
+            ws.Cell(row, daysInMonth + 2).Style.NumberFormat.Format = "0.00";
+            ws.Cell(row, daysInMonth + 2).Style.Font.Bold = true;
+            row++;
+        }
+
+        // Sum row
+        ws.Cell(row, 1).Value = "Sum";
+        ws.Cell(row, 1).Style.Font.Bold = true;
+        var grandTotal = 0.0;
+        for (int d = 1; d <= daysInMonth; d++)
+        {
+            if (dayTotals[d] > 0)
+            {
+                ws.Cell(row, 1 + d).Value = dayTotals[d];
+                ws.Cell(row, 1 + d).Style.NumberFormat.Format = "0.00";
+            }
+            ws.Cell(row, 1 + d).Style.Font.Bold = true;
+            grandTotal += dayTotals[d];
+        }
+        ws.Cell(row, daysInMonth + 2).Value = grandTotal;
+        ws.Cell(row, daysInMonth + 2).Style.NumberFormat.Format = "0.00";
+        ws.Cell(row, daysInMonth + 2).Style.Font.Bold = true;
+        ws.Range(row, 1, row, daysInMonth + 2).Style.Border.TopBorder = XLBorderStyleValues.Thin;
+
+        // Invoice project distribution rows
+        foreach (var ip in invoiceProjects)
+        {
+            row++;
+            var label = ip.ShortName ?? $"{ip.ProjectNumber} {ip.Name}";
+            ws.Cell(row, 1).Value = label;
+            ws.Cell(row, 1).Style.Font.Italic = true;
+            var ipTotal = 0.0;
+
+            for (int d = 1; d <= daysInMonth; d++)
+            {
+                var daySum = 0.0;
+                foreach (var e in entriesList.Where(e => e.Date.Day == d))
+                {
+                    var projectKey = JiraIssueKeyParser.ExtractProjectKey(e.JiraIssueKey);
+                    if (projectKey != null && distKeyLookup.TryGetValue(projectKey, out var ipPcts) && ipPcts.TryGetValue(ip.Id, out var pct))
+                        daySum += (double)e.Hours * pct / 100.0;
+                }
+                if (daySum > 0)
+                {
+                    ws.Cell(row, 1 + d).Value = daySum;
+                    ws.Cell(row, 1 + d).Style.NumberFormat.Format = "0.00";
+                }
+                ws.Cell(row, 1 + d).Style.Font.Italic = true;
+                ipTotal += daySum;
+            }
+
+            ws.Cell(row, daysInMonth + 2).Value = ipTotal;
+            ws.Cell(row, daysInMonth + 2).Style.NumberFormat.Format = "0.00";
+            ws.Cell(row, daysInMonth + 2).Style.Font.Italic = true;
+        }
+
+        ws.Column(1).AdjustToContents();
+
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        return stream.ToArray();
+    }
+
     public byte[] GeneratePdf(
         InvoiceProject invoiceProject,
         string employerName,

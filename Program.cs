@@ -407,6 +407,22 @@ timeEntries.MapGet("/export", async (int consultantId, int year, int month, Time
     return Results.File(System.Text.Encoding.UTF8.GetBytes(json), "application/json", fileName);
 });
 
+timeEntries.MapGet("/export/excel", async (int consultantId, int year, int month, TimeEntryRepository timeRepo, ConsultantRepository consultantRepo, InvoiceProjectRepository ipRepo, JiraProjectRepository jiraRepo, ReportService reportService) =>
+{
+    var consultant = await consultantRepo.GetByIdAsync(consultantId);
+    if (consultant is null)
+        return Results.NotFound();
+
+    var entries = await timeRepo.GetByConsultantAndMonthAsync(consultantId, year, month);
+    var invoiceProjects = (await ipRepo.GetAllAsync()).ToList();
+    var jiraProjectDtos = (await jiraRepo.GetAllWithDistributionKeysAsync()).ToList();
+    var consultantName = $"{consultant.FirstName} {consultant.LastName}";
+    var excelBytes = reportService.GenerateTimesheetExcel(consultantName, entries, invoiceProjects, jiraProjectDtos, year, month);
+
+    var fileName = $"Timeark_{consultantName.Replace(" ", "_")}_{MonthNames.Norwegian[month]}_{year}.xlsx";
+    return Results.File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+});
+
 timeEntries.MapPost("/import", async (TimeEntryImportDto importData, TimeEntryRepository timeRepo, JiraProjectRepository jiraRepo, MonthlyLockRepository lockRepo) =>
 {
     if (await lockRepo.IsLockedAsync(importData.ConsultantId, importData.Year, importData.Month))

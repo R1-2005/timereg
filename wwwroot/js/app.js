@@ -104,7 +104,10 @@ const App = {
                             <button v-if="!isMonthLocked && consultant.isAdmin" class="btn btn-secondary" @click="openGSheetImport">
                                 Importer fra G-Sheet
                             </button>
-                            <button v-if="!isMonthLocked" class="btn btn-secondary" @click="exportJson">
+                            <button class="btn btn-secondary" @click="exportExcel">
+                                Eksporter Excel
+                            </button>
+                            <button class="btn btn-secondary" @click="exportJson">
                                 Eksporter JSON
                             </button>
                             <label v-if="!isMonthLocked" class="btn btn-secondary import-btn">
@@ -262,6 +265,11 @@ const App = {
             window.location.href = url;
         };
 
+        const exportExcel = () => {
+            const url = `/api/time-entries/export/excel?consultantId=${consultant.value.id}&year=${selectedYear.value}&month=${selectedMonth.value}`;
+            window.location.href = url;
+        };
+
         const importJson = async (event) => {
             const file = event.target.files[0];
             if (!file) return;
@@ -326,6 +334,7 @@ const App = {
             openGSheetImport,
             onGSheetImported,
             exportJson,
+            exportExcel,
             importJson
         };
     }

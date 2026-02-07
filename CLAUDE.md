@@ -185,6 +185,7 @@ UNIQUE(ConsultantId, Year, Month). Når en rad finnes er måneden markert som fe
 - `DELETE /api/time-entries/{id}` — validerer månedslås
 - `DELETE /api/time-entries/by-issue?consultantId&jiraIssueKey&year&month` — slett alle timer for en sak i en måned. Validerer månedslås.
 - `GET /api/time-entries/export?consultantId&year&month` → JSON-fil
+- `GET /api/time-entries/export/excel?consultantId&year&month` → Excel-fil (ClosedXML). Timeark med timer per dag per Jira-sak og fordeling per fakturaprosjekt. Filnavn: `Timeark_{Navn}_{Månedsnavn}_{år}.xlsx`
 - `POST /api/time-entries/import` ← `TimeEntryImportDto` — sletter eksisterende for måneden, importerer nye. Validerer månedslås.
 
 ### Oversikt og rapporter
@@ -207,7 +208,7 @@ UNIQUE(ConsultantId, Year, Month). Når en rad finnes er måneden markert som fe
 | AdminProjects | `admin-projects.js` | CRUD Jira-prosjekter med fordelingsnøkler og seksjonsfordeling, JSON eksport/import | `GET/POST/PUT/DELETE jira-projects`, `GET sections`, `GET invoice-projects` |
 | MonthPicker | `month-picker.js` | Gjenbrukbar månedsvelger med forrige/neste-navigasjon | (ingen) |
 
-App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synlig for IsAdmin-brukere med arkfaner (Jira-prosjekter, Konsulenter, Arbeidsgivere). Håndterer månedslås-tilstand, "Marker som ferdig"-knapp og "Importer fra G-Sheet"-knapp (kun admin) i timeregistreringsfanen. Inkluderer dark/light theme toggle (localStorage-persistert).
+App-komponent (`app.js`): tab-navigasjon, innloggingsstatus, Admin-fane kun synlig for IsAdmin-brukere med arkfaner (Jira-prosjekter, Konsulenter, Arbeidsgivere). Håndterer månedslås-tilstand, "Marker som ferdig"-knapp og "Importer fra G-Sheet"-knapp (kun admin) i timeregistreringsfanen. Eksport-knapper (JSON og Excel) er alltid synlige, også når måneden er låst. Inkluderer dark/light theme toggle (localStorage-persistert).
 
 ## Forretningsregler
 

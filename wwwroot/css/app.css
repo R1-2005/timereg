@@ -585,8 +585,13 @@ tfoot .sum-row td {
     margin-bottom: 16px;
 }
 
+.time-header .month-picker {
+    margin-bottom: 0;
+}
+
 .time-header-actions {
     display: flex;
+    align-items: center;
     gap: 8px;
 }
 
