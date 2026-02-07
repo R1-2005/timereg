@@ -1072,18 +1072,61 @@ tfoot .sum-row td {
     border-bottom-color: var(--color-accent);
 }
 
-/* Completion percentage colors */
-.completion-low {
+/* Progress badge */
+.progress-badge {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 56px;
+    height: 24px;
+    border-radius: 20px;
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.progress-badge-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    border-radius: 20px;
+    transition: width 0.3s ease;
+}
+
+.progress-badge-text {
+    position: relative;
+    z-index: 1;
+    padding: 0 10px;
+}
+
+.progress-badge.completion-low {
+    background: var(--color-status-no-bg);
     color: var(--color-completion-low);
-    font-weight: 600;
 }
 
-.completion-medium {
+.progress-badge.completion-low .progress-badge-fill {
+    background: var(--color-completion-low);
+    opacity: 0.15;
+}
+
+.progress-badge.completion-medium {
+    background: var(--color-warning-bg);
     color: var(--color-completion-medium);
-    font-weight: 600;
 }
 
-.completion-high {
+.progress-badge.completion-medium .progress-badge-fill {
+    background: var(--color-completion-medium);
+    opacity: 0.15;
+}
+
+.progress-badge.completion-high {
+    background: var(--color-status-yes-bg);
     color: var(--color-completion-high);
-    font-weight: 600;
+}
+
+.progress-badge.completion-high .progress-badge-fill {
+    background: var(--color-completion-high);
+    opacity: 0.15;
 }

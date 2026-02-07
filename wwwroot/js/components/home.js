@@ -38,10 +38,11 @@ export default {
                             <td>
                                 <span v-if="isLocked(consultant.id)" class="badge badge-done">Ferdig</span>
                             </td>
-                            <td class="text-right">
-                                <span :class="getCompletionClass(consultant.completionPercent)">
-                                    {{ consultant.completionPercent }}%
-                                </span>
+                            <td>
+                                <div class="progress-badge" :class="getCompletionClass(consultant.completionPercent)">
+                                    <div class="progress-badge-fill" :style="{ width: Math.min(100, consultant.completionPercent) + '%' }"></div>
+                                    <span class="progress-badge-text">{{ consultant.completionPercent }}%</span>
+                                </div>
                             </td>
                             <td v-for="ip in invoiceProjects" :key="ip.id" class="text-right">
                                 {{ formatHours(getDistributedHours(consultant.id, ip.id)) }}
