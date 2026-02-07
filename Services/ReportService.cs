@@ -177,10 +177,10 @@ public class ReportService
                 {
                     table.ColumnsDefinition(columns =>
                     {
-                        columns.RelativeColumn(3); // Konsulent
-                        columns.RelativeColumn(2); // Jira-sak
+                        columns.RelativeColumn(2.1f); // Konsulent
+                        columns.RelativeColumn(1.8f); // Jira-sak
                         foreach (var _ in sections)
-                            columns.RelativeColumn(1); // Section columns
+                            columns.RelativeColumn(1.5f); // Section columns
                         columns.RelativeColumn(1); // Timer
                     });
 
